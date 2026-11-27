@@ -15,6 +15,11 @@ def play_youtube(query: str) -> str:
         if not cleaned_query:
             return "Error playing YouTube video: search query cannot be empty."
 
+        # If the user just asked to open YouTube itself, open the homepage directly.
+        if cleaned_query.lower() in {"youtube", "my youtube", "youtube home", "youtube homepage"}:
+            webbrowser.open("https://www.youtube.com")
+            return "Opened YouTube homepage (https://www.youtube.com)"
+
         ydl_opts: dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
