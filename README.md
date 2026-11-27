@@ -1,6 +1,6 @@
 # Jarvis Lite
 
-A lightweight, day-to-day personal AI assistant built with **Python 3.11+**, the **Google GenAI SDK** (`gemini-3.8-flash`) with multi-step tool calling, **SQLite**, **yt-dlp**, and **Streamlit**.
+A lightweight, day-to-day personal AI assistant built with **Python 3.11+**, the **Google GenAI SDK** (`gemini-3.5-flash-lite` with automatic fallback to `gemini-3.6-flash` / `gemini-3.1-flash-lite`) with multi-step tool calling, **SQLite**, **yt-dlp**, and **Streamlit**.
 
 Type natural language in **English**, **Sinhala (සිංහල)**, or **Singlish**, and Jarvis Lite automatically decides which tools to run—managing tasks, saving/searching notes, remembering long-term personal facts across sessions, and playing songs or videos on YouTube.
 

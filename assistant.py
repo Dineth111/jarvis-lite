@@ -1,9 +1,8 @@
-"""Gemini conversation loop with multi-step tool-use handling."""
+"""Gemini conversation loop with multi-step tool calling and automatic model fallback."""
 
 from __future__ import annotations
 
 import os
-import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -21,16 +20,32 @@ _ENV_PATH = Path(__file__).resolve().parent / ".env"
 # Load environment variables from .env (never hardcode API keys).
 load_dotenv(dotenv_path=_ENV_PATH, override=True)
 
-DEFAULT_MODEL = "gemini-3.8-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODELS: tuple[str, ...] = (
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+)
 MAX_TOOL_ROUNDS = 10
-RETRY_DELAYS_SECONDS = (1.5, 3.0, 5.0)
+_FALLBACK_STATUS_CODES = {404, 429, 500, 503, 504}
 
 
 def get_model_name() -> str:
-    """Return the configured Gemini model name (defaults to gemini-3.8-flash)."""
+    """Return the configured primary Gemini model name (defaults to gemini-3.5-flash-lite)."""
     load_dotenv(dotenv_path=_ENV_PATH, override=True)
     configured = os.getenv("GEMINI_MODEL", "").strip()
     return configured or DEFAULT_MODEL
+
+
+def _build_model_chain(primary: str) -> list[str]:
+    """Return an ordered, deduplicated list of models to try on transient failures."""
+    chain = [primary]
+    for candidate in FALLBACK_MODELS:
+        if candidate not in chain:
+            chain.append(candidate)
+    return chain
 
 
 def get_api_key() -> str:
@@ -43,14 +58,20 @@ def get_api_key() -> str:
 
 
 def get_client() -> genai.Client:
-    """Instantiate a Google GenAI client using GEMINI_API_KEY from .env."""
+    """Instantiate a Google GenAI client with fast fail-over HTTP options."""
     api_key = get_api_key()
     if not api_key:
         raise RuntimeError(
             "GEMINI_API_KEY is missing. Get a free key from https://aistudio.google.com/apikey "
             "and paste it into your `.env` file."
         )
-    return genai.Client(api_key=api_key)
+    return genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(
+            timeout=25_000,
+            retry_options=types.HttpRetryOptions(attempts=2),
+        ),
+    )
 
 
 def _build_gemini_tools() -> list[types.Tool]:
@@ -87,31 +108,31 @@ def _extract_text(model_content: types.Content) -> str:
     return "\n\n".join(chunks).strip()
 
 
-def _generate_with_retry(
+def _generate_with_fallback(
     client: Any,
     *,
-    model: str,
+    models: list[str],
     contents: list[types.Content],
     config: types.GenerateContentConfig,
-) -> Any:
-    """Call Gemini generate_content with automatic retry on temporary 503/429 spikes."""
+) -> tuple[Any, str]:
+    """Try each model in `models`, automatically failing over on 503/429/504/404."""
     last_exc: Exception | None = None
-    for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
+    for candidate in models:
         try:
-            return client.models.generate_content(
-                model=model,
+            response = client.models.generate_content(
+                model=candidate,
                 contents=contents,
                 config=config,
             )
+            return response, candidate
         except genai_errors.APIError as exc:
             last_exc = exc
-            if exc.code in (429, 503) and attempt < len(RETRY_DELAYS_SECONDS):
-                time.sleep(RETRY_DELAYS_SECONDS[attempt])
+            if exc.code in _FALLBACK_STATUS_CODES:
                 continue
             raise
     if last_exc is not None:
         raise last_exc
-    raise RuntimeError("Unexpected retry failure.")
+    raise RuntimeError("No Gemini models were available to complete the request.")
 
 
 def chat(
@@ -134,7 +155,7 @@ def chat(
         session_facts: Optional `(key, value)` snapshot captured at session start.
         on_tool_call: Optional callback invoked with `{id, name, input, output}` per tool call.
         client: Optional pre-configured GenAI client (useful for testing).
-        model: Optional model override (defaults to `gemini-2.5-flash`).
+        model: Optional model override (defaults to `gemini-3.6-flash` with fallbacks).
 
     Returns:
         The assistant's final natural-language text response.
@@ -145,7 +166,7 @@ def chat(
 
     init_db()
     active_client = client or get_client()
-    active_model = model or get_model_name()
+    model_chain = _build_model_chain(model or get_model_name())
     active_system = system_prompt or build_system_prompt(facts=session_facts)
     gemini_tools = _build_gemini_tools()
 
@@ -161,9 +182,9 @@ def chat(
     rounds = 0
     while True:
         rounds += 1
-        response = _generate_with_retry(
+        response, used_model = _generate_with_fallback(
             active_client,
-            model=active_model,
+            models=model_chain,
             contents=working_contents,
             config=types.GenerateContentConfig(
                 system_instruction=active_system,
@@ -173,6 +194,9 @@ def chat(
                 ),
             ),
         )
+        # Prefer the working model for subsequent tool-result rounds in this turn.
+        if used_model != model_chain[0]:
+            model_chain = _build_model_chain(used_model)
 
         candidates = getattr(response, "candidates", None) or []
         if not candidates or getattr(candidates[0], "content", None) is None:
