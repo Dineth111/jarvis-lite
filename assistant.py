@@ -135,34 +135,71 @@ def _generate_with_fallback(
     raise RuntimeError("No Gemini models were available to complete the request.")
 
 
+_TEXT_FILE_EXTS = {
+    ".txt", ".md", ".csv", ".json", ".py", ".html", ".htm",
+    ".css", ".js", ".ts", ".tsx", ".jsx", ".sql", ".xml", ".yaml", ".yml",
+}
+
+
+def _build_attachment_parts(attachments: list[dict[str, Any]] | None) -> list[types.Part]:
+    """Convert uploaded file attachments (images, PDFs, code/text files) into Gemini Parts."""
+    parts: list[types.Part] = []
+    for att in attachments or []:
+        name = str(att.get("name") or "file")
+        mime = str(att.get("mime_type") or "").lower()
+        data = att.get("data") or b""
+        if not data:
+            continue
+
+        suffix = Path(name).suffix.lower()
+        if mime.startswith("text/") or suffix in _TEXT_FILE_EXTS:
+            decoded = data.decode("utf-8", errors="replace")
+            if len(decoded) > 60_000:
+                decoded = decoded[:60_000] + "\n... [truncated]"
+            parts.append(
+                types.Part.from_text(
+                    text=f"[Attached file: {name}]\n```\n{decoded}\n```"
+                )
+            )
+        else:
+            resolved_mime = mime or "application/octet-stream"
+            parts.append(types.Part.from_bytes(data=data, mime_type=resolved_mime))
+    return parts
+
+
 def chat(
     user_message: str,
     history: list[dict[str, Any]] | None = None,
     *,
+    attachments: list[dict[str, Any]] | None = None,
     system_prompt: str | None = None,
     session_facts: list[tuple[str, str]] | None = None,
     on_tool_call: Callable[[dict[str, Any]], None] | None = None,
     client: Any | None = None,
     model: str | None = None,
 ) -> str:
-    """Send `user_message` to Gemini and run tools in a loop until no tool calls remain.
+    """Send `user_message` (and optional file attachments) to Gemini with tool calling.
 
     Args:
         user_message: Natural-language prompt from the user.
         history: Mutable conversation list of serialized `types.Content` dicts; updated
             in-place only when the full turn succeeds so errors never corrupt state.
+        attachments: Optional list of `{name, mime_type, data}` uploaded file dicts.
         system_prompt: Optional prebuilt system prompt; built automatically if omitted.
         session_facts: Optional `(key, value)` snapshot captured at session start.
         on_tool_call: Optional callback invoked with `{id, name, input, output}` per tool call.
         client: Optional pre-configured GenAI client (useful for testing).
-        model: Optional model override (defaults to `gemini-3.6-flash` with fallbacks).
+        model: Optional model override (defaults to `gemini-3.5-flash-lite` with fallbacks).
 
     Returns:
         The assistant's final natural-language text response.
     """
     cleaned_input = (user_message or "").strip()
-    if not cleaned_input:
-        return "Please enter a message."
+    attachment_parts = _build_attachment_parts(attachments)
+    if not cleaned_input and not attachment_parts:
+        return "Please enter a message or attach a file."
+    if not cleaned_input and attachment_parts:
+        cleaned_input = "Please analyze the attached file(s) and help me with them."
 
     init_db()
     active_client = client or get_client()
@@ -175,9 +212,8 @@ def chat(
         types.Content.model_validate(item) if isinstance(item, dict) else item
         for item in (history or [])
     ]
-    working_contents.append(
-        types.Content(role="user", parts=[types.Part.from_text(text=cleaned_input)])
-    )
+    user_parts = [types.Part.from_text(text=cleaned_input), *attachment_parts]
+    working_contents.append(types.Content(role="user", parts=user_parts))
 
     rounds = 0
     while True:

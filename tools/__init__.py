@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tools.developer import create_code_file, open_app, open_in_vscode, open_website
 from tools.memory import recall_facts, remember_fact
 from tools.notes import save_note, search_notes
 from tools.tasks import add_task, complete_task, list_tasks
@@ -135,6 +136,88 @@ TOOLS: list[dict[str, Any]] = [
             "required": ["query"],
         },
     },
+    {
+        "name": "open_app",
+        "description": (
+            "Open a desktop application on the user's PC (such as WhatsApp, VS Code, Chrome, "
+            "Edge, Terminal, Notepad, Calculator, File Explorer, Spotify, or Discord)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "app_name": {
+                    "type": "string",
+                    "description": "Name of the app to open (e.g., 'WhatsApp', 'VS Code', 'Terminal').",
+                }
+            },
+            "required": ["app_name"],
+        },
+    },
+    {
+        "name": "open_website",
+        "description": (
+            "Open a website URL or developer shortcut (e.g., 'github', 'whatsapp web', "
+            "'stackoverflow', 'localhost:3000', or any full URL) in the browser."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url_or_name": {
+                    "type": "string",
+                    "description": "Website name or URL to open.",
+                }
+            },
+            "required": ["url_or_name"],
+        },
+    },
+    {
+        "name": "create_code_file",
+        "description": (
+            "Create a complete, ready-to-run code file (e.g., a decorated HTML/CSS page, JS app, "
+            "or Python script) inside Desktop/Jarvis-Projects, open it directly in VS Code, and "
+            "optionally open HTML files in the browser for instant live preview."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "File name including extension (e.g., 'index.html', 'app.py').",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Full, clean, well-formatted source code to write into the file.",
+                },
+                "folder": {
+                    "type": "string",
+                    "description": "Optional subfolder name inside Desktop/Jarvis-Projects (e.g., 'portfolio-site').",
+                },
+                "open_in_vscode": {
+                    "type": "boolean",
+                    "description": "Whether to open the folder and file in VS Code immediately (default true).",
+                },
+                "open_in_browser": {
+                    "type": "boolean",
+                    "description": "Set to true for HTML pages so the user sees the styled page live in their browser.",
+                },
+            },
+            "required": ["filename", "content"],
+        },
+    },
+    {
+        "name": "open_in_vscode",
+        "description": "Open an existing file or project folder in Visual Studio Code.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Full path or folder name inside Desktop / Desktop/Jarvis-Projects.",
+                }
+            },
+            "required": ["path"],
+        },
+    },
 ]
 
 _TOOL_DISPATCH = {
@@ -146,6 +229,10 @@ _TOOL_DISPATCH = {
     "remember_fact": remember_fact,
     "recall_facts": recall_facts,
     "play_youtube": play_youtube,
+    "open_app": open_app,
+    "open_website": open_website,
+    "create_code_file": create_code_file,
+    "open_in_vscode": open_in_vscode,
 }
 
 

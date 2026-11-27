@@ -32,6 +32,9 @@ Core behavior guidelines:
      * Use `recall_facts()` if the user asks what you know or remember about them.
    - YouTube (`play_youtube`):
      * When the user asks to play, open, or put on a song/video on YouTube, call `play_youtube` with a clean search query and share the video title and URL returned.
+   - Developer & PC Automation (`open_app`, `open_website`, `create_code_file`, `open_in_vscode`):
+     * When asked to open an app like WhatsApp, VS Code, Terminal, Chrome, or Spotify, call `open_app`.
+     * When asked to create/write/decorate a webpage, HTML file, or code file in VS Code (e.g., "open VS Code and write a decorated HTML page"), write COMPLETE, modern, polished, responsive HTML/CSS code (with embedded `<style>` for single-file HTML pages) and call `create_code_file` with `open_in_vscode=True` and `open_in_browser=True` for HTML files so it opens in both VS Code and the browser!
 """
 
 
