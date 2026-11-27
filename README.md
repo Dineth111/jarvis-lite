@@ -1,6 +1,6 @@
 # Jarvis Lite
 
-A lightweight, day-to-day personal AI assistant built with **Python 3.11+**, the **Anthropic Claude SDK** (`claude-sonnet-5-5`) with multi-step tool calling, **SQLite**, **yt-dlp**, and **Streamlit**.
+A lightweight, day-to-day personal AI assistant built with **Python 3.11+**, the **Google GenAI SDK** (`gemini-3.8-flash`) with multi-step tool calling, **SQLite**, **yt-dlp**, and **Streamlit**.
 
 Type natural language in **English**, **Sinhala (සිංහල)**, or **Singlish**, and Jarvis Lite automatically decides which tools to run—managing tasks, saving/searching notes, remembering long-term personal facts across sessions, and playing songs or videos on YouTube.
 
@@ -9,7 +9,7 @@ Type natural language in **English**, **Sinhala (සිංහල)**, or **Singli
 ## Features
 
 - **Conversational Streamlit UI** — Persistent chat history in `st.session_state`, live sidebar snapshots of pending tasks and memory, and collapsible tool-call inspection.
-- **Multi-Step Tool Loop** — Calls the Claude Messages API in a loop until `stop_reason != "tool_use"`, allowing chained actions (such as listing tasks to find an ID before completing it).
+- **Multi-Step Tool Loop** — Calls the Gemini API in a loop until all requested function calls complete, allowing chained actions (such as listing tasks to find an ID before completing it).
 - **SQLite Persistence (`jarvis.db`)**:
   - **Tasks**: `add_task(title, due_date?)`, `list_tasks()`, `complete_task(id)`
   - **Notes**: `save_note(text)`, `search_notes(keyword)`
@@ -25,7 +25,7 @@ Type natural language in **English**, **Sinhala (සිංහල)**, or **Singli
 ```text
 jarvis-lite/
   app.py              # Streamlit chat UI
-  assistant.py        # chat() loop with Claude tool-use handling
+  assistant.py        # chat() loop with Gemini tool-use handling
   tools/
     __init__.py       # TOOLS list (JSON schemas) + run_tool() dispatcher
     tasks.py          # add_task, list_tasks, complete_task
@@ -46,7 +46,7 @@ jarvis-lite/
 
 ### 1. Prerequisites
 - **Python 3.11+**
-- An **Anthropic API key** from [console.anthropic.com](https://console.anthropic.com/)
+- A **free Google Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey) (no credit card required)
 
 ### 2. Create and activate a virtual environment (optional, recommended)
 
@@ -70,7 +70,7 @@ pip install -r requirements.txt
 
 ### 4. Configure your environment variables
 
-Copy `.env.example` to `.env` and add your Anthropic API key:
+Copy `.env.example` to `.env` and add your Gemini API key:
 
 **Windows (PowerShell):**
 ```powershell
@@ -84,7 +84,7 @@ cp .env.example .env
 
 Edit `.env`:
 ```env
-ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AIzaSy...
 ```
 
 ### 5. Launch the app
@@ -124,4 +124,4 @@ Try typing any of these in the chat input:
 
 1. **Telegram Bot Integration** — Wrap `assistant.chat()` with `python-telegram-bot` or `aiogram` (storing per-chat history in SQLite) so you can message Jarvis Lite from your phone on the go.
 2. **Google Calendar Sync** — Add `list_calendar_events` and `create_calendar_event` tools using `google-api-python-client` with OAuth2 so deadlines and meetings sync directly with Google Calendar.
-3. **Daily Morning Brief with APScheduler** — Schedule a daily morning job using `APScheduler` (`CronTrigger(hour=7, minute=30)`) that pulls today's due tasks, recent notes, and remembered preferences, generates a concise morning briefing with Claude, and delivers it via Telegram or desktop notification.
+3. **Daily Morning Brief with APScheduler** — Schedule a daily morning job using `APScheduler` (`CronTrigger(hour=7, minute=30)`) that pulls today's due tasks, recent notes, and remembered preferences, generates a concise morning briefing with Gemini, and delivers it via Telegram or desktop notification.

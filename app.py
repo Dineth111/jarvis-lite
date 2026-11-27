@@ -1,19 +1,19 @@
-"""Streamlit chat UI for Jarvis Lite."""
+"""Streamlit chat UI for Jarvis Lite (powered by Google Gemini)."""
 
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
 from dotenv import load_dotenv
 
-from assistant import chat, get_model_name
+from assistant import chat, get_api_key, get_model_name
 from db import get_connection, init_db
 from tools.memory import get_all_facts
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=True)
 init_db()
 
 st.set_page_config(
@@ -74,7 +74,7 @@ def _fetch_notes_count() -> int:
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.header(":material/smart_toy: Jarvis Lite")
-    st.caption(f"Model: `{get_model_name()}`")
+    st.caption(f"Model: `{get_model_name()}` (Google Gemini)")
 
     if st.button("Start new session", icon=":material/refresh:", width="stretch"):
         st.session_state.api_messages = []
@@ -117,11 +117,10 @@ st.caption(
     "chat naturally in English, සිංහල, or Singlish."
 )
 
-api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-if not api_key or api_key == "your_api_key_here":
+if not get_api_key():
     st.warning(
-        "`ANTHROPIC_API_KEY` is not configured yet. Copy `.env.example` to `.env`, "
-        "paste your Anthropic API key, and restart or rerun the app.",
+        "`GEMINI_API_KEY` is not set yet. Get a **free** key at "
+        "https://aistudio.google.com/apikey, paste it into `.env`, save, and refresh this page.",
         icon=":material/key:",
     )
 
