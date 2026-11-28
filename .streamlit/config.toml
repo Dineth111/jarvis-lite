@@ -1,37 +1,37 @@
 [theme]
 base = "dark"
-primaryColor = "#6366F1"
-backgroundColor = "#090A0F"
-secondaryBackgroundColor = "#11131B"
-codeBackgroundColor = "#0D0F16"
-textColor = "#F4F5F7"
-linkColor = "#818CF8"
-borderColor = "#232634"
-codeTextColor = "#CBD5E1"
+primaryColor = "#00E5FF"
+backgroundColor = "#02080D"
+secondaryBackgroundColor = "#041018"
+codeBackgroundColor = "#030B11"
+textColor = "#C8F3FA"
+linkColor = "#00E5FF"
+borderColor = "#0E3545"
+codeTextColor = "#7CEEFF"
 showWidgetBorder = true
 showSidebarBorder = true
-baseRadius = "12px"
-buttonRadius = "10px"
+baseRadius = "4px"
+buttonRadius = "4px"
 linkUnderline = false
 
-font = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-headingFont = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&display=swap"
+font = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+headingFont = "'Rajdhani':https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap"
 codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-baseFontSize = 15
-codeFontSize = "0.84rem"
-headingFontSizes = ["26px", "20px", "16px", "15px", "14px", "12px"]
+baseFontSize = 13
+codeFontSize = "0.80rem"
+headingFontSizes = ["22px", "17px", "15px", "14px", "13px", "12px"]
 headingFontWeights = [700, 600, 600, 600, 500, 500]
 
-blueColor = "#38BDF8"
-greenColor = "#34D399"
-orangeColor = "#FBBF24"
-redColor = "#F87171"
-violetColor = "#818CF8"
+blueColor = "#00E5FF"
+greenColor = "#00E6A8"
+orangeColor = "#FFB020"
+redColor = "#FF4D6D"
+violetColor = "#38BDF8"
 
 [theme.sidebar]
-backgroundColor = "#0D0F15"
-secondaryBackgroundColor = "#151823"
-codeBackgroundColor = "#0B0D13"
-textColor = "#F4F5F7"
-borderColor = "#1F2330"
-primaryColor = "#6366F1"
+backgroundColor = "#030B11"
+secondaryBackgroundColor = "#061621"
+codeBackgroundColor = "#02080D"
+textColor = "#C8F3FA"
+borderColor = "#0E3545"
+primaryColor = "#00E5FF"

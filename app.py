@@ -1,4 +1,4 @@
-"""Jarvis — 3-Column Modern Cockpit with Mode Switcher (Dev / Academic / Personal / Research) & 60fps JS Face."""
+"""J.A.R.V.I.S. — Tactical Stark-Style HUD Dashboard with 4 Workspace Modes & 60fps JS Radar Face."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import base64
 import html
 import importlib
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,13 +15,13 @@ import streamlit as st
 from dotenv import load_dotenv
 
 import assistant as _assistant_mod
+import components as _components_mod
 import db as _db_mod
 import prompts as _prompts_mod
 import tools as _tools_mod
 import tools.builder as _builder_tools_mod
 import tools.developer as _dev_tools_mod
 import tools.vision as _vision_tools_mod
-from components import render_jarvis_hero
 from tools.memory import get_all_facts
 from tools.tasks import complete_task
 from voice import VOICE_PRESETS, synthesize_speech, transcribe_audio
@@ -32,6 +33,10 @@ importlib.reload(_vision_tools_mod)
 importlib.reload(_tools_mod)
 importlib.reload(_prompts_mod)
 importlib.reload(_assistant_mod)
+if not hasattr(_components_mod, "render_jarvis_voice_aura"):
+    importlib.reload(_components_mod)
+
+render_jarvis_voice_aura = _components_mod.render_jarvis_voice_aura
 
 chat = _assistant_mod.chat
 get_api_key = _assistant_mod.get_api_key
@@ -49,193 +54,313 @@ init_db()
 _FAVICON_PATH = Path(__file__).resolve().parent / "assets" / "favicon.png"
 
 st.set_page_config(
-    page_title="Jarvis",
-    page_icon=str(_FAVICON_PATH) if _FAVICON_PATH.exists() else ":material/auto_awesome:",
+    page_title="J.A.R.V.I.S.",
+    page_icon=str(_FAVICON_PATH) if _FAVICON_PATH.exists() else ":material/terminal:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ---------------------------------------------------------------------------
-# Mode Configurations — each mode shows ONLY its own relevant actions & copy
+# Workspace Mode Definitions (Dev | Academic | Personal | Research)
 # ---------------------------------------------------------------------------
 MODE_CONFIG: dict[str, dict[str, Any]] = {
     "Dev": {
         "key": "dev",
-        "subtitle": "Code, Git, VS Code, XAMPP & Screen Debugging",
-        "greeting": "Dev mode active. Inspect your screen, build projects live in VS Code/XAMPP, check localhost ports, or manage Git repos.",
-        "placeholder": "Dev command (e.g., 'build PHP LMS in XAMPP', 'git status', 'look at my screen')...",
+        "code": "DEV-OPS",
+        "greeting": "DEV CORE OPTIMAL. Ready for VS Code/XAMPP live builds, Git operations, screen debugging, and port monitoring.",
+        "placeholder": "jarvis --dev (e.g. 'build PHP LMS in XAMPP', 'git status', 'look at my screen')...",
         "suggestions": {
-            ":material/visibility: Inspect screen": "Look at my screen and help fix any error or code shown",
-            ":material/commit: Git status": "Check git status of jarvis-lite",
-            ":material/code: Build HTML in VS Code": "Open VS Code and write a modern HTML portfolio page",
-            ":material/rocket_launch: Scaffold FastAPI": "Create a new FastAPI project called api-demo and open it in VS Code",
-            ":material/lan: Dev ports": "Check which local dev ports are running right now",
+            ":material/visibility: Screen Debug": "Look at my screen and help fix any error or code shown",
+            ":material/commit: Git Status": "Check git status of jarvis-lite",
+            ":material/code: Build HTML": "Open VS Code and write a modern HTML portfolio page",
+            ":material/lan: Dev Ports": "Check which local dev ports are running right now",
         },
-        "left_tasks_title": "Dev Sprint Tasks",
-        "left_notes_title": "Code Snippets & Notes",
+        "tasks_tag": "SPRINT QUEUE",
     },
     "Academic": {
         "key": "academic",
-        "subtitle": "Lectures, Assignments, Exam Prep & Study Notes",
-        "greeting": "Academic mode active. Attach lecture PDFs or Word docs to summarize, generate practice MCQs, explain CS/IT concepts, or track assignment deadlines.",
-        "placeholder": "Study command (attach PDF/Word slides or ask 'make 5 MCQs on...')...",
+        "code": "STUDY-CORE",
+        "greeting": "ACADEMIC MODULE ONLINE. Attach lecture PDFs or Word docs for summaries, MCQs, concept explanations, or deadline tracking.",
+        "placeholder": "jarvis --study (attach PDF/Word slides or ask 'make 5 MCQs on...')...",
         "suggestions": {
             ":material/school: Open SLIIT": "Open SLIIT",
-            ":material/menu_book: Open W3Schools": "Open W3Schools",
-            ":material/quiz: Practice MCQs": "Give me 5 quick interview & exam MCQs on Python and SQL with answers",
-            ":material/add_task: Add assignment": "Add a task: submit university assignment tomorrow",
-            ":material/visibility: Explain my screen": "Look at my screen and explain the concept or question shown",
+            ":material/menu_book: W3Schools": "Open W3Schools",
+            ":material/quiz: Practice MCQs": "Give me 5 quick exam MCQs on Python and SQL with answers",
+            ":material/visibility: Explain Screen": "Look at my screen and explain the concept or question shown",
         },
-        "left_tasks_title": "Assignments & Deadlines",
-        "left_notes_title": "Study Notes",
+        "tasks_tag": "ASSIGNMENTS",
     },
     "Personal": {
         "key": "personal",
-        "subtitle": "Daily Tasks, YouTube, WhatsApp & Personal Memory",
-        "greeting": "Personal mode active. Ask me to play songs on YouTube, open WhatsApp, remember personal facts, or organize your day in English, සිංහල, or Singlish.",
-        "placeholder": "Message Jarvis (e.g., 'play Believer on YouTube', 'open WhatsApp', 'heta gym yanna')...",
+        "code": "PERSONAL-OS",
+        "greeting": "PERSONAL SYSTEMS OPTIMAL. Play YouTube music, open WhatsApp, manage daily tasks, or chat in English, සිංහල, or Singlish.",
+        "placeholder": "jarvis --personal (e.g. 'play Believer on YouTube', 'open WhatsApp', 'heta gym')...",
         "suggestions": {
             ":material/smart_display: Play Believer": "Go to YouTube and play Believer",
-            ":material/chat: Open WhatsApp": "Open WhatsApp",
-            ":material/checklist: My tasks": "What are my tasks?",
-            ":material/psychology: What you remember": "What facts do you remember about me?",
-            ":material/translate: Singlish task": "Machan heta ude gym yanna task ekak danna",
+            ":material/chat: WhatsApp": "Open WhatsApp",
+            ":material/checklist: My Tasks": "What are my tasks?",
+            ":material/translate: Singlish Task": "Machan heta ude gym yanna task ekak danna",
         },
-        "left_tasks_title": "Daily Tasks",
-        "left_notes_title": "Personal Notes",
+        "tasks_tag": "DAILY TASKS",
     },
     "Research": {
         "key": "research",
-        "subtitle": "Deep Document Analysis, Google Search & Comparisons",
-        "greeting": "Research mode active. Attach SRS/PDF/Word documents for structured analysis, search Google, compare technologies, and save key findings.",
-        "placeholder": "Research query or attach a document to analyze...",
+        "code": "INTEL-NET",
+        "greeting": "RESEARCH ENGINE ACTIVE. Attach SRS/PDF/Word files for deep analysis, run Google searches, or compare tech stacks.",
+        "placeholder": "jarvis --research (attach a report or enter a research query)...",
         "suggestions": {
-            ":material/search: Search Google": "Go to Google and search latest AI agent frameworks 2026",
-            ":material/compare_arrows: Compare stacks": "Compare FastAPI vs Node.js Express for an AI backend in a clean table",
-            ":material/open_in_new: Open GitHub": "Open GitHub",
-            ":material/sticky_note_2: Search my notes": "Search my notes for recent findings",
-            ":material/visibility: Read my screen": "Look at my screen and summarize the article or document shown",
+            ":material/search: Google Search": "Go to Google and search latest AI agent frameworks 2026",
+            ":material/compare_arrows: Compare Stacks": "Compare FastAPI vs Node.js Express in a clean summary",
+            ":material/open_in_new: GitHub": "Open GitHub",
+            ":material/visibility: Read Screen": "Look at my screen and summarize the document shown",
         },
-        "left_tasks_title": "Research Queue",
-        "left_notes_title": "Research Findings",
+        "tasks_tag": "RESEARCH QUEUE",
     },
 }
 
 # ---------------------------------------------------------------------------
-# Modern 3-Column Glass Cockpit CSS
+# Reference-Matched Tactical HUD CSS (#02080D + #00E5FF + Corner L-Brackets)
 # ---------------------------------------------------------------------------
 st.html(
     """
     <style>
       .stApp {
-        background:
-          radial-gradient(ellipse 65% 42% at 50% -6%, rgba(99, 102, 241, 0.14), transparent 60%),
-          radial-gradient(ellipse 46% 36% at 50% 24%, rgba(56, 189, 248, 0.10), transparent 58%),
-          #090A0F;
+        background: #02080D;
       }
       .block-container {
-        padding-top: 0.7rem;
-        padding-bottom: 1.2rem;
-        max-width: 1500px;
+        padding-top: 1.4rem;
+        padding-bottom: 1.0rem;
+        max-width: 1560px;
       }
       header[data-testid="stHeader"] {
         background: transparent;
+        pointer-events: none;
       }
-      div[data-testid="stChatInput"] > div {
-        border-radius: 18px !important;
-        background: rgba(18, 21, 31, 0.88) !important;
-        border: 1px solid rgba(255, 255, 255, 0.11) !important;
-        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.42);
-        backdrop-filter: blur(14px);
+      header[data-testid="stHeader"] button,
+      header[data-testid="stHeader"] a {
+        pointer-events: auto;
       }
-      div[data-testid="stChatInput"] > div:focus-within {
-        border-color: rgba(129, 140, 248, 0.55) !important;
+
+      /* Tactical Corner-Bracketed Panel Frame */
+      .hud-card {
+        position: relative;
+        background: rgba(4, 16, 24, 0.88);
+        border: 1px solid #0C3242;
+        border-radius: 3px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
       }
-      .top-brand-strip {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding-top: 4px;
-      }
-      .brand-dot {
+      .hud-card::before,
+      .hud-card::after {
+        content: "";
+        position: absolute;
         width: 10px;
         height: 10px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #38BDF8, #818CF8);
-        box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
+        pointer-events: none;
       }
-      .brand-name {
-        font-size: 1.15rem;
+      .hud-card::before {
+        top: -1px;
+        left: -1px;
+        border-top: 2px solid #00E5FF;
+        border-left: 2px solid #00E5FF;
+      }
+      .hud-card::after {
+        bottom: -1px;
+        right: -1px;
+        border-bottom: 2px solid #00E5FF;
+        border-right: 2px solid #00E5FF;
+      }
+      .hud-card-hdr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.14);
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+      }
+      .hud-sys-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        color: #2E7C91;
+        text-transform: uppercase;
+      }
+      .hud-sys-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.96rem;
         font-weight: 700;
-        letter-spacing: -0.02em;
-        color: #F8FAFC;
-        margin: 0;
+        letter-spacing: 0.12em;
+        color: #5CEEFF;
+        text-transform: uppercase;
+        margin: 1px 0 0 0;
       }
-      .brand-sub {
-        font-size: 0.78rem;
-        color: #94A3B8;
-        margin: 0;
+      .hud-sys-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.64rem;
+        letter-spacing: 0.10em;
+        color: #2E7C91;
+        text-transform: uppercase;
       }
-      .top-status-strip {
+
+      /* Tactical Cyan Progress Bars (matching CPU / Memory / Storage in reference) */
+      .hud-bar-row {
+        margin-bottom: 9px;
+      }
+      .hud-bar-meta {
+        display: flex;
+        justify-content: space-between;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: #7AC4D6;
+        margin-bottom: 4px;
+      }
+      .hud-bar-val {
+        color: #00E5FF;
+        font-weight: 600;
+      }
+      .hud-bar-track {
+        width: 100%;
+        height: 4px;
+        background: #082330;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .hud-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00A6C8, #00E5FF);
+        box-shadow: 0 0 8px rgba(0, 229, 255, 0.65);
+      }
+
+      /* Top Tactical Header */
+      .hud-top-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .hud-diamond {
+        width: 13px;
+        height: 13px;
+        border: 1.5px solid #00E5FF;
+        transform: rotate(45deg);
+        background: rgba(0, 229, 255, 0.16);
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
+        flex-shrink: 0;
+      }
+      .hud-wordmark {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.32rem;
+        font-weight: 700;
+        letter-spacing: 0.28em;
+        color: #6AF1FF;
+        margin: 0;
+        line-height: 1.05;
+      }
+      .hud-tagline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        color: #2E7C91;
+        margin: 2px 0 0 0;
+        text-transform: uppercase;
+      }
+      .hud-top-status {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 10px;
-        padding-top: 6px;
+        gap: 18px;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.74rem;
-        color: #94A3B8;
       }
-      .live-pill {
+      .hud-kv-label {
+        font-size: 0.58rem;
+        letter-spacing: 0.14em;
+        color: #2E7C91;
+        text-transform: uppercase;
+      }
+      .hud-kv-val {
+        font-size: 0.78rem;
+        color: #5CEEFF;
+        font-weight: 600;
+      }
+      .hud-user-badge {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
+        gap: 8px;
+        padding: 4px 10px;
+        border: 1px solid #0E3A4C;
         border-radius: 999px;
-        background: rgba(52, 211, 153, 0.10);
-        border: 1px solid rgba(52, 211, 153, 0.25);
-        color: #6EE7B7;
+        background: #04131D;
+        color: #7EEFFF;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
       }
-      .live-dot {
-        width: 6px;
-        height: 6px;
+      .hud-user-dot {
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
-        background: #34D399;
+        border: 1.5px solid #00E5FF;
+        background: rgba(0, 229, 255, 0.2);
       }
-      .reply-glass-card {
-        width: 100%;
-        padding: 14px 18px;
-        margin: 2px 0 12px 0;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
+
+      /* System Log Lines */
+      .hud-log-line {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.73rem;
+        line-height: 1.55;
+        color: #8DE8F7;
+        margin-bottom: 5px;
+        word-break: break-word;
       }
-      .reply-glass-text {
-        font-size: 0.96rem;
+      .hud-log-ts {
+        color: #2C788C;
+        margin-right: 6px;
+      }
+      .hud-log-role {
+        color: #00E5FF;
+        font-weight: 600;
+        margin-right: 5px;
+      }
+
+      /* Terminal Box */
+      .hud-terminal {
+        background: #02090F;
+        border: 1px solid #0B2D3C;
+        padding: 10px 12px;
+        border-radius: 3px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.74rem;
+        color: #4CE8FF;
+        line-height: 1.5;
+      }
+      .hud-term-sub {
+        color: #367E92;
+        font-size: 0.70rem;
+        margin-top: 4px;
+      }
+
+      /* Center Transmission Readout */
+      .hud-reply-box {
+        background: rgba(4, 16, 24, 0.85);
+        border: 1px solid #0E384A;
+        border-left: 3px solid #00E5FF;
+        border-radius: 3px;
+        padding: 12px 15px;
+        margin: 4px 0 10px 0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.84rem;
         line-height: 1.6;
-        color: #E2E8F0;
-        margin: 0;
+        color: #D2F6FC;
         white-space: pre-wrap;
       }
-      .reply-tool-chip {
-        display: inline-block;
-        margin-top: 8px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.71rem;
-        padding: 2px 8px;
-        border-radius: 6px;
-        background: rgba(56, 189, 248, 0.10);
-        border: 1px solid rgba(56, 189, 248, 0.24);
-        color: #7DD3FC;
+
+      /* Chat input tactical border */
+      div[data-testid="stChatInput"] > div {
+        background: #041018 !important;
+        border: 1px solid #134C63 !important;
+        border-radius: 4px !important;
       }
-      .wing-heading {
-        font-size: 0.76rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #94A3B8;
-        margin-bottom: 8px;
+      div[data-testid="stChatInput"] > div:focus-within {
+        border-color: #00E5FF !important;
+        box-shadow: 0 0 14px rgba(0, 229, 255, 0.22);
       }
     </style>
     """
@@ -265,14 +390,17 @@ if "pending_prompt" not in st.session_state:
 if "last_audio" not in st.session_state:
     st.session_state.last_audio = None
 
+if "last_audio_id" not in st.session_state:
+    st.session_state.last_audio_id = ""
+
 if "last_pill" not in st.session_state:
     st.session_state.last_pill = None
 
 
-def _fetch_pending_tasks() -> list[dict[str, Any]]:
+def _fetch_task_stats() -> tuple[list[dict[str, Any]], int, int]:
     try:
         with get_connection() as conn:
-            rows = conn.execute(
+            pending = conn.execute(
                 """
                 SELECT id, title, due_date
                 FROM tasks
@@ -280,23 +408,35 @@ def _fetch_pending_tasks() -> list[dict[str, Any]]:
                 ORDER BY CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC,
                          due_date ASC,
                          id ASC
-                LIMIT 10
+                LIMIT 8
                 """
             ).fetchall()
-        return [dict(row) for row in rows]
+            done_cnt = conn.execute("SELECT COUNT(*) AS c FROM tasks WHERE completed = 1").fetchone()["c"]
+            total_cnt = conn.execute("SELECT COUNT(*) AS c FROM tasks").fetchone()["c"]
+        return [dict(r) for r in pending], int(done_cnt), int(total_cnt)
     except Exception:
-        return []
+        return [], 0, 0
 
 
 def _fetch_recent_notes() -> list[dict[str, Any]]:
     try:
         with get_connection() as conn:
             rows = conn.execute(
-                "SELECT id, text, created_at FROM notes ORDER BY id DESC LIMIT 6"
+                "SELECT id, text, created_at FROM notes ORDER BY id DESC LIMIT 5"
             ).fetchall()
         return [dict(row) for row in rows]
     except Exception:
         return []
+
+
+def _get_disk_usage_pct() -> tuple[int, str]:
+    try:
+        usage = shutil.disk_usage(Path.home())
+        pct = int((usage.used / usage.total) * 100)
+        free_gb = usage.free / (1024**3)
+        return pct, f"{pct}% ({free_gb:.0f} GB free)"
+    except Exception:
+        return 50, "N/A"
 
 
 @st.cache_data(show_spinner=False)
@@ -309,45 +449,42 @@ def _load_avatar_data_uri() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Top Bar with Interactive Mode Switcher (Dev | Academic | Personal | Research)
+# Top Tactical Header Bar (JARVIS | Mode Dropdown | STATUS • TIME | DINETH)
 # ---------------------------------------------------------------------------
-now_label = datetime.now().strftime("%a %d %b · %H:%M")
+now_time = datetime.now().strftime("%H:%M:%S")
 api_ready = bool(get_api_key())
-status_html = (
-    '<span class="live-pill"><span class="live-dot"></span>Online</span>'
-    if api_ready
-    else '<span>API key missing</span>'
-)
+status_word = "● OPTIMAL" if api_ready else "● KEY NEEDED"
+
+def _on_mode_change() -> None:
+    st.session_state.last_pill = None
+    st.toast(f"Switched to {st.session_state.active_mode} mode", icon=":material/tune:")
+
 
 with st.container(border=True):
-    tb_left, tb_mid, tb_right = st.columns([1.6, 1.0, 1.6], vertical_alignment="center")
+    tb_left, tb_mid, tb_right = st.columns([1.5, 0.95, 1.75], vertical_alignment="center")
 
     with tb_mid:
         mode_names = list(MODE_CONFIG.keys())
-        chosen_mode = st.selectbox(
+        st.selectbox(
             "Workspace mode",
             options=mode_names,
-            index=mode_names.index(st.session_state.active_mode),
-            format_func=lambda m: f"Mode: {m}",
+            format_func=lambda m: f"MODE // {m.upper()}",
             label_visibility="collapsed",
-            key="mode_dropdown",
+            key="active_mode",
+            on_change=_on_mode_change,
         )
-        if chosen_mode != st.session_state.active_mode:
-            st.session_state.active_mode = chosen_mode
-            st.session_state.last_pill = None
-            st.rerun()
 
     current_mode_name = st.session_state.active_mode
     mode_cfg = MODE_CONFIG[current_mode_name]
 
     with tb_left:
         st.html(
-            f"""
-            <div class="top-brand-strip">
-              <span class="brand-dot"></span>
+            """
+            <div class="hud-top-left">
+              <div class="hud-diamond"></div>
               <div>
-                <p class="brand-name">Jarvis</p>
-                <p class="brand-sub">{html.escape(mode_cfg['subtitle'])}</p>
+                <p class="hud-wordmark">J A R V I S</p>
+                <p class="hud-tagline">JUST A RATHER VERY INTELLIGENT SYSTEM</p>
               </div>
             </div>
             """
@@ -356,10 +493,19 @@ with st.container(border=True):
     with tb_right:
         st.html(
             f"""
-            <div class="top-status-strip">
-              {status_html}
-              <span>{get_model_name()}</span>
-              <span>{now_label}</span>
+            <div class="hud-top-status">
+              <div>
+                <div class="hud-kv-label">SYSTEM STATUS</div>
+                <div class="hud-kv-val">{status_word}</div>
+              </div>
+              <div>
+                <div class="hud-kv-label">LOCAL TIME</div>
+                <div class="hud-kv-val">{now_time}</div>
+              </div>
+              <div class="hud-user-badge">
+                <span>DINETH</span>
+                <span class="hud-user-dot"></span>
+              </div>
             </div>
             """
         )
@@ -370,12 +516,19 @@ if not api_ready:
         icon=":material/key:",
     )
 
-pending_tasks = _fetch_pending_tasks()
+pending_tasks, done_tasks_cnt, total_tasks_cnt = _fetch_task_stats()
 current_facts = get_all_facts()
 recent_notes = _fetch_recent_notes()
+disk_pct, disk_label = _get_disk_usage_pct()
 
 audio_to_play = st.session_state.last_audio
+audio_play_id = st.session_state.last_audio_id
 st.session_state.last_audio = None
+audio_data_uri = (
+    f"data:audio/mp3;base64,{base64.b64encode(audio_to_play).decode('ascii')}"
+    if audio_to_play
+    else ""
+)
 
 latest_assistant_msg = next(
     (m for m in reversed(st.session_state.display_messages) if m["role"] == "assistant"),
@@ -385,166 +538,290 @@ reply_text = latest_assistant_msg["content"] if latest_assistant_msg else mode_c
 reply_tools = (latest_assistant_msg or {}).get("tool_calls") or []
 
 # ---------------------------------------------------------------------------
-# 3-Column Modern Cockpit Layout (Left Wing | Wide Center JS Face | Right Wing)
+# Reference-Matched 3-Column Tactical HUD Grid
 # ---------------------------------------------------------------------------
-col_left, col_center, col_right = st.columns([0.82, 2.55, 0.88], gap="medium")
+col_left, col_center, col_right = st.columns([0.96, 1.98, 1.02], gap="medium")
 
-# LEFT WING: Tasks, Notes, Memory (contextual titles per mode)
+# LEFT COLUMN: 3 Corner-Bracketed HUD Modules
 with col_left:
-    with st.container(border=True):
-        st.html(f'<div class="wing-heading">{html.escape(mode_cfg["left_tasks_title"])}</div>')
-        if pending_tasks:
-            for item in pending_tasks[:7]:
-                due_badge = f" · `{item['due_date']}`" if item["due_date"] else ""
-                t_left, t_right = st.columns([5, 1], vertical_alignment="center")
-                t_left.markdown(f"`#{item['id']}` {item['title']}{due_badge}")
-                if t_right.button(
-                    "",
-                    key=f"done_task_{item['id']}",
-                    icon=":material/check:",
-                    help=f"Complete task #{item['id']}",
-                ):
-                    complete_task(item["id"])
-                    st.rerun()
-        else:
-            st.caption("No open tasks.")
-
-    with st.container(border=True):
-        st.html(f'<div class="wing-heading">{html.escape(mode_cfg["left_notes_title"])}</div>')
-        if recent_notes:
-            for note in recent_notes[:5]:
-                snippet = note["text"] if len(note["text"]) <= 68 else f"{note['text'][:65]}..."
-                st.markdown(f"- `#{note['id']}` {snippet}")
-        else:
-            st.caption("No saved notes yet.")
-
-    with st.container(border=True):
-        st.html('<div class="wing-heading">Long-Term Memory</div>')
-        if current_facts:
-            for key, value in current_facts[:6]:
-                st.markdown(f"- **{key}**: {value}")
-        else:
-            st.caption("No saved facts yet.")
-
-# RIGHT WING: Voice Controls + Telemetry + Persistent Chat History
-with col_right:
-    with st.container(border=True):
-        st.html('<div class="wing-heading">Voice & Session</div>')
-        voice_enabled = st.toggle("Spoken replies", value=True, key="voice_enabled")
-        selected_voice = st.selectbox(
-            "Voice profile",
-            options=list(VOICE_PRESETS.keys()),
-            index=0,
-            label_visibility="collapsed",
-            key="voice_profile",
-        )
-        if audio_to_play:
-            st.audio(audio_to_play, format="audio/mp3", autoplay=True)
-
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Tasks", len(pending_tasks))
-        m2.metric("Memory", len(current_facts))
-        m3.metric("Notes", len(recent_notes))
-
-        if st.button("New chat", icon=":material/add:", width="stretch"):
-            st.session_state.session_id = datetime.now().strftime("session-%Y%m%d-%H%M%S")
-            st.session_state.api_messages = []
-            st.session_state.display_messages = []
-            st.session_state.pending_prompt = None
-            st.session_state.last_audio = None
-            st.session_state.session_facts = get_all_facts()
-            st.rerun()
-
-    with st.container(border=True):
-        st.html('<div class="wing-heading">Chat History</div>')
-        tab_current, tab_history = st.tabs(["Current", "Saved"])
-
-        with tab_current:
-            with st.container(height=290, border=False):
-                if st.session_state.display_messages:
-                    for msg in st.session_state.display_messages:
-                        role_tag = "You" if msg["role"] == "user" else "Jarvis"
-                        st.markdown(f"**{role_tag}**  \n{msg['content']}")
-                        if msg.get("tool_calls"):
-                            with st.expander(f"Tools ({len(msg['tool_calls'])})", expanded=False):
-                                for call in msg["tool_calls"]:
-                                    st.code(
-                                        f"{call['name']}({json.dumps(call['input'], ensure_ascii=False)})\n-> {call['output']}",
-                                        language="text",
-                                    )
-                else:
-                    st.caption("Messages from this session appear here.")
-
-        with tab_history:
-            saved_sessions = list_chat_sessions(limit=20)
-            if saved_sessions:
-                session_labels = {
-                    s["session_id"]: (
-                        f"{(s['last_at'] or '')[5:16]} · "
-                        f"{((s['preview'] or 'Chat')[:24])}"
-                        f" ({s['message_count']})"
-                    )
-                    for s in saved_sessions
-                }
-                chosen_sid = st.selectbox(
-                    "Past sessions",
-                    options=list(session_labels.keys()),
-                    format_func=lambda sid: session_labels[sid],
-                    label_visibility="collapsed",
-                    key="history_session_select",
-                )
-                past_msgs = get_session_messages(chosen_sid)
-                with st.container(height=210, border=False):
-                    for msg in past_msgs:
-                        role_tag = "You" if msg["role"] == "user" else "Jarvis"
-                        ts = (msg.get("created_at") or "")[11:16]
-                        st.markdown(f"**{role_tag}** `{ts}`  \n{msg['content']}")
-
-                b1, b2 = st.columns(2)
-                if b1.button("Load", icon=":material/history:", width="stretch", key="load_hist_btn"):
-                    st.session_state.session_id = chosen_sid
-                    st.session_state.display_messages = past_msgs
-                    st.session_state.api_messages = [
-                        {
-                            "role": "user" if m["role"] == "user" else "model",
-                            "parts": [{"text": m["content"]}],
-                        }
-                        for m in past_msgs
-                    ]
-                    st.rerun()
-                if b2.button("Delete", icon=":material/delete:", width="stretch", key="del_hist_btn"):
-                    delete_chat_session(chosen_sid)
-                    if st.session_state.session_id == chosen_sid:
-                        st.session_state.session_id = datetime.now().strftime("session-%Y%m%d-%H%M%S")
-                        st.session_state.display_messages = []
-                        st.session_state.api_messages = []
-                    st.rerun()
-            else:
-                st.caption("No saved chats yet.")
-
-# CENTER STAGE: Large 60fps JS Face + Live Speech Card + Mode-Specific Quick Actions + Input
-with col_center:
-    render_jarvis_hero(
-        avatar_uri=_load_avatar_data_uri(),
-        speaking=bool(audio_to_play),
-        compact=False,
-        heading="",
-        subtitle="",
-    )
-
-    tool_chip_html = ""
-    if reply_tools:
-        names = ", ".join(t["name"] for t in reply_tools)
-        tool_chip_html = f'<div><span class="reply-tool-chip">Ran: {html.escape(names)}</span></div>'
-
+    # 1. Tasks / Mission Queue
+    completion_pct = int((done_tasks_cnt / total_tasks_cnt) * 100) if total_tasks_cnt else 100
     st.html(
         f"""
-        <div class="reply-glass-card">
-          <p class="reply-glass-text">{html.escape(reply_text)}</p>
-          {tool_chip_html}
+        <div class="hud-card">
+          <div class="hud-card-hdr">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">{html.escape(mode_cfg['tasks_tag'])}</div>
+            </div>
+            <div class="hud-sys-tag">{len(pending_tasks)} OPEN</div>
+          </div>
+          <div class="hud-bar-row">
+            <div class="hud-bar-meta">
+              <span>COMPLETION</span>
+              <span class="hud-bar-val">{completion_pct}%</span>
+            </div>
+            <div class="hud-bar-track">
+              <div class="hud-bar-fill" style="width: {completion_pct}%;"></div>
+            </div>
+          </div>
         </div>
         """
     )
+    if pending_tasks:
+        for item in pending_tasks[:5]:
+            due_badge = f" · `{item['due_date']}`" if item["due_date"] else ""
+            t_l, t_r = st.columns([5, 1], vertical_alignment="center")
+            t_l.markdown(f"`#{item['id']}` {item['title']}{due_badge}")
+            if t_r.button("", key=f"done_task_{item['id']}", icon=":material/check:"):
+                complete_task(item["id"])
+                st.rerun()
+    else:
+        st.caption("ALL MISSIONS CLEARED")
+
+    # 2. System Resources (exact cyan progress bars from reference)
+    tools_pct = 100
+    mem_pct = min(100, max(12, len(current_facts) * 12))
+    st.html(
+        f"""
+        <div class="hud-card">
+          <div class="hud-card-hdr">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">SYSTEM RESOURCES</div>
+            </div>
+            <div class="hud-sys-tag">RT-MONITOR</div>
+          </div>
+          <div class="hud-bar-row">
+            <div class="hud-bar-meta">
+              <span>AI CORE ({html.escape(get_model_name())})</span>
+              <span class="hud-bar-val">{tools_pct}%</span>
+            </div>
+            <div class="hud-bar-track">
+              <div class="hud-bar-fill" style="width: {tools_pct}%;"></div>
+            </div>
+          </div>
+          <div class="hud-bar-row">
+            <div class="hud-bar-meta">
+              <span>NEURAL MEMORY</span>
+              <span class="hud-bar-val">{len(current_facts)} FACTS</span>
+            </div>
+            <div class="hud-bar-track">
+              <div class="hud-bar-fill" style="width: {mem_pct}%;"></div>
+            </div>
+          </div>
+          <div class="hud-bar-row" style="margin-bottom: 2px;">
+            <div class="hud-bar-meta">
+              <span>LOCAL STORAGE</span>
+              <span class="hud-bar-val">{disk_label}</span>
+            </div>
+            <div class="hud-bar-track">
+              <div class="hud-bar-fill" style="width: {disk_pct}%;"></div>
+            </div>
+          </div>
+        </div>
+        """
+    )
+
+    # 3. Neural Memory & Notes Vault
+    facts_html = "".join(
+        f'<div class="hud-log-line"><span class="hud-log-role">{html.escape(k)}:</span>{html.escape(v)}</div>'
+        for k, v in current_facts[:4]
+    ) or '<div class="hud-log-line" style="color:#367E92;">NO FACTS RECORDED</div>'
+    notes_html = "".join(
+        f'<div class="hud-log-line"><span class="hud-log-ts">#{n["id"]}</span>{html.escape(n["text"][:52])}</div>'
+        for n in recent_notes[:3]
+    ) or '<div class="hud-log-line" style="color:#367E92;">VAULT EMPTY</div>'
+
+    st.html(
+        f"""
+        <div class="hud-card">
+          <div class="hud-card-hdr">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">MEMORY &amp; NOTES</div>
+            </div>
+            <div class="hud-sys-tag">SQLITE-DB</div>
+          </div>
+          {facts_html}
+          <div style="border-top:1px solid rgba(0,229,255,0.12); margin:8px 0;"></div>
+          {notes_html}
+        </div>
+        """
+    )
+
+# RIGHT COLUMN: 3 Corner-Bracketed HUD Modules
+with col_right:
+    # 1. Core Status + 4 Tactical Action Tiles (matching top-right reference panel!)
+    st.html(
+        f"""
+        <div class="hud-card">
+          <div class="hud-card-hdr">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">CORE CONTROLS</div>
+            </div>
+            <div class="hud-sys-tag">{mode_cfg['code']}</div>
+          </div>
+          <div style="display:flex; gap:14px; margin-bottom:2px;">
+            <div style="flex:1;">
+              <div class="hud-bar-meta"><span>TOOLS</span><span class="hud-bar-val">25</span></div>
+              <div class="hud-bar-track"><div class="hud-bar-fill" style="width:100%;"></div></div>
+            </div>
+            <div style="flex:1;">
+              <div class="hud-bar-meta"><span>VOICE</span><span class="hud-bar-val">NEURAL</span></div>
+              <div class="hud-bar-track"><div class="hud-bar-fill" style="width:98%;"></div></div>
+            </div>
+          </div>
+        </div>
+        """
+    )
+    voice_enabled = st.toggle("VOICE SYNTHESIS", value=True, key="voice_enabled")
+    selected_voice = st.selectbox(
+        "Voice profile",
+        options=list(VOICE_PRESETS.keys()),
+        index=0,
+        label_visibility="collapsed",
+        key="voice_profile",
+    )
+
+    # 4 Tactical Square Icon Tiles (Screen, Git, Ports, New Session)
+    ic1, ic2, ic3, ic4 = st.columns(4, gap="small")
+    if ic1.button("", icon=":material/visibility:", help="Inspect my screen", key="tile_screen", width="stretch"):
+        st.session_state.pending_prompt = "Look at my screen and help with what is visible"
+        st.rerun()
+    if ic2.button("", icon=":material/commit:", help="Git status", key="tile_git", width="stretch"):
+        st.session_state.pending_prompt = "Check git status of jarvis-lite"
+        st.rerun()
+    if ic3.button("", icon=":material/lan:", help="Check dev ports", key="tile_ports", width="stretch"):
+        st.session_state.pending_prompt = "Check which local dev ports are running right now"
+        st.rerun()
+    if ic4.button("", icon=":material/restart_alt:", help="New session", key="tile_reset", width="stretch"):
+        st.session_state.session_id = datetime.now().strftime("session-%Y%m%d-%H%M%S")
+        st.session_state.api_messages = []
+        st.session_state.display_messages = []
+        st.session_state.pending_prompt = None
+        st.session_state.last_audio = None
+        st.session_state.session_facts = get_all_facts()
+        st.rerun()
+
+    # 2. System Logs & Saved History (matching [HH:MM:SS] reference log panel!)
+    st.html(
+        """
+        <div class="hud-card" style="margin-top:10px; margin-bottom:6px; padding-bottom:8px;">
+          <div class="hud-card-hdr" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">SYSTEM LOGS</div>
+            </div>
+            <div class="hud-sys-tag">RT-LOG</div>
+          </div>
+        </div>
+        """
+    )
+    tab_log, tab_saved = st.tabs(["LIVE LOG", "SAVED HISTORY"])
+
+    with tab_log:
+        with st.container(height=215, border=True):
+            if st.session_state.display_messages:
+                for msg in st.session_state.display_messages:
+                    role_lbl = "USER" if msg["role"] == "user" else "JARVIS"
+                    ts = (msg.get("created_at") or now_time)[-8:]
+                    st.html(
+                        f'<div class="hud-log-line">'
+                        f'<span class="hud-log-ts">[{html.escape(ts)}]</span>'
+                        f'<span class="hud-log-role">{role_lbl}:</span>'
+                        f'{html.escape(msg["content"][:220])}'
+                        f'</div>'
+                    )
+            else:
+                st.html(
+                    f"""
+                    <div class="hud-log-line"><span class="hud-log-ts">[{now_time}]</span> SYSTEM INTEGRITY CHECK COMPLETE</div>
+                    <div class="hud-log-line"><span class="hud-log-ts">[{now_time}]</span> MODE LOCKED: {mode_cfg['code']}</div>
+                    <div class="hud-log-line"><span class="hud-log-ts">[{now_time}]</span> 25 LOCAL DEV TOOLS ONLINE</div>
+                    <div class="hud-log-line"><span class="hud-log-ts">[{now_time}]</span> AWAITING USER INPUT...</div>
+                    """
+                )
+
+    with tab_saved:
+        saved_sessions = list_chat_sessions(limit=20)
+        if saved_sessions:
+            session_labels = {
+                s["session_id"]: f"{(s['last_at'] or '')[5:16]} · {(s['preview'] or 'Chat')[:20]}"
+                for s in saved_sessions
+            }
+            chosen_sid = st.selectbox(
+                "Saved sessions",
+                options=list(session_labels.keys()),
+                format_func=lambda sid: session_labels[sid],
+                label_visibility="collapsed",
+                key="history_session_select",
+            )
+            past_msgs = get_session_messages(chosen_sid)
+            with st.container(height=130, border=True):
+                for m in past_msgs[-6:]:
+                    r_lbl = "USER" if m["role"] == "user" else "JARVIS"
+                    st.html(
+                        f'<div class="hud-log-line"><span class="hud-log-role">{r_lbl}:</span>'
+                        f'{html.escape(m["content"][:120])}</div>'
+                    )
+            b1, b2 = st.columns(2)
+            if b1.button("LOAD", icon=":material/history:", width="stretch", key="load_hist_btn"):
+                st.session_state.session_id = chosen_sid
+                st.session_state.display_messages = past_msgs
+                st.session_state.api_messages = [
+                    {
+                        "role": "user" if m["role"] == "user" else "model",
+                        "parts": [{"text": m["content"]}],
+                    }
+                    for m in past_msgs
+                ]
+                st.rerun()
+            if b2.button("DELETE", icon=":material/delete:", width="stretch", key="del_hist_btn"):
+                delete_chat_session(chosen_sid)
+                st.rerun()
+        else:
+            st.caption("NO SAVED SESSIONS")
+
+    # 3. Terminal Box (matching bottom-right ROOT@JARVIS panel in reference!)
+    last_tool_cmd = (
+        f"jarvis --exec {reply_tools[-1]['name']}"
+        if reply_tools
+        else f"jarvis --mode {mode_cfg['key']} --ready"
+    )
+    last_tool_out = (
+        reply_tools[-1]["output"][:95]
+        if reply_tools
+        else "Environment active. Voice, Vision & File Attach ready."
+    )
+    st.html(
+        f"""
+        <div class="hud-card" style="margin-top:8px;">
+          <div class="hud-card-hdr">
+            <div>
+              <div class="hud-sys-label">SYSTEM //</div>
+              <div class="hud-sys-title">TERMINAL</div>
+            </div>
+            <div class="hud-sys-tag">ROOT@JARVIS</div>
+          </div>
+          <div class="hud-terminal">
+            &gt;_ {html.escape(last_tool_cmd)}
+            <div class="hud-term-sub">{html.escape(last_tool_out)}</div>
+          </div>
+        </div>
+        """
+    )
+
+# CENTER STAGE: 60fps JS Tactical Radar + 360° Voice Spectrum & Ripples + Waveform
+with col_center:
+    render_jarvis_voice_aura(
+        avatar_uri=_load_avatar_data_uri(),
+        audio_uri=audio_data_uri,
+        audio_id=audio_play_id,
+    )
+
+    st.html(f'<div class="hud-reply-box">{html.escape(reply_text)}</div>')
 
     mode_suggestions: dict[str, str] = mode_cfg["suggestions"]
     selected_chip = st.pills(
@@ -588,7 +865,7 @@ with col_center:
                 )
 
         if chat_submission.audio is not None:
-            with st.spinner("Transcribing audio..."):
+            with st.spinner("TRANSCRIBING AUDIO..."):
                 try:
                     raw_audio = chat_submission.audio.read()
                     mime = getattr(chat_submission.audio, "type", None) or "audio/wav"
@@ -613,7 +890,7 @@ with col_center:
         )
 
         tool_calls_this_turn: list[dict[str, Any]] = []
-        with st.status(f"[{current_mode_name}] Working on: {prompt_text[:55]}", expanded=True) as status_box:
+        with st.status(f"[{mode_cfg['code']}] EXECUTING: {prompt_text[:50]}", expanded=True) as status_box:
 
             def _handle_tool_call(event: dict[str, Any]) -> None:
                 tool_calls_this_turn.append(event)
@@ -621,13 +898,13 @@ with col_center:
                 tool_name = event["name"]
                 tool_input = event.get("input") or {}
                 if tool_name == "init_project_workspace":
-                    label = f"Opening VS Code: {tool_input.get('project_name', '')}"
+                    label = f"OPENING VS CODE: {tool_input.get('project_name', '')}"
                 elif tool_name == "write_project_file":
-                    label = f"Writing {tool_input.get('relative_file_path', '')}"
+                    label = f"WRITING: {tool_input.get('relative_file_path', '')}"
                 elif tool_name in {"run_project", "start_xampp"}:
-                    label = "Launching local server..."
+                    label = "LAUNCHING LOCAL SERVER..."
                 else:
-                    label = f"Running {tool_name}..."
+                    label = f"RUNNING: {tool_name}..."
                 status_box.update(label=label, state="running", expanded=True)
                 status_box.markdown(f"**{step_num}. `{tool_name}`** — {event['output']}")
 
@@ -640,19 +917,21 @@ with col_center:
                     session_facts=st.session_state.session_facts,
                     on_tool_call=_handle_tool_call,
                 )
-                status_box.update(label="Done", state="complete", expanded=False)
+                status_box.update(label="EXECUTION COMPLETE", state="complete", expanded=False)
             except Exception as exc:
-                status_box.update(label="Failed", state="error", expanded=True)
+                status_box.update(label="COMMAND FAILED", state="error", expanded=True)
                 st.error(f"Request failed: {exc}")
                 st.stop()
 
         if voice_enabled:
-            with st.spinner("Generating audio..."):
+            with st.spinner("SYNTHESIZING VOICE..."):
                 st.session_state.last_audio = synthesize_speech(
                     reply,
                     voice_id=VOICE_PRESETS[selected_voice],
                 )
+                st.session_state.last_audio_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
 
+        now_ts = datetime.now().strftime("%H:%M:%S")
         save_chat_message(st.session_state.session_id, "user", display_user_text)
         save_chat_message(
             st.session_state.session_id,
@@ -661,12 +940,15 @@ with col_center:
             tool_calls=tool_calls_this_turn,
         )
 
-        st.session_state.display_messages.append({"role": "user", "content": display_user_text})
+        st.session_state.display_messages.append(
+            {"role": "user", "content": display_user_text, "created_at": now_ts}
+        )
         st.session_state.display_messages.append(
             {
                 "role": "assistant",
                 "content": reply,
                 "tool_calls": tool_calls_this_turn,
+                "created_at": now_ts,
             }
         )
         st.rerun()
