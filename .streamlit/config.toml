@@ -1,37 +1,37 @@
 [theme]
 base = "dark"
-primaryColor = "#00C8FF"
-backgroundColor = "#040811"
-secondaryBackgroundColor = "#0A1324"
-codeBackgroundColor = "#07101F"
-textColor = "#DFF6FF"
-linkColor = "#38E4FF"
-borderColor = "#133554"
-codeTextColor = "#7CE8FF"
+primaryColor = "#3B82F6"
+backgroundColor = "#0B0D11"
+secondaryBackgroundColor = "#12151C"
+codeBackgroundColor = "#0F1218"
+textColor = "#EDEDEF"
+linkColor = "#60A5FA"
+borderColor = "#222733"
+codeTextColor = "#CBD5E1"
 showWidgetBorder = true
 showSidebarBorder = true
-baseRadius = "10px"
-buttonRadius = "8px"
+baseRadius = "8px"
+buttonRadius = "6px"
 linkUnderline = false
 
-font = "'Space Grotesk':https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
-headingFont = "'Orbitron':https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap"
 codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-baseFontSize = 15
-codeFontSize = "0.85rem"
-headingFontSizes = ["28px", "20px", "17px", "15px", "14px", "12px"]
-headingFontWeights = [700, 600, 600, 600, 500, 500]
+baseFontSize = 14
+codeFontSize = "0.82rem"
+headingFontSizes = ["22px", "18px", "15px", "14px", "13px", "12px"]
+headingFontWeights = [600, 600, 600, 500, 500, 500]
 
-blueColor = "#00C8FF"
-greenColor = "#00E6A8"
-orangeColor = "#FFB020"
-redColor = "#FF4D6D"
+blueColor = "#3B82F6"
+greenColor = "#22C55E"
+orangeColor = "#F59E0B"
+redColor = "#EF4444"
 violetColor = "#8B5CF6"
 
 [theme.sidebar]
-backgroundColor = "#060C18"
-secondaryBackgroundColor = "#0C182D"
-codeBackgroundColor = "#07101F"
-textColor = "#DFF6FF"
-borderColor = "#133554"
-primaryColor = "#00C8FF"
+backgroundColor = "#0E1016"
+secondaryBackgroundColor = "#161A23"
+codeBackgroundColor = "#0F1218"
+textColor = "#EDEDEF"
+borderColor = "#222733"
+primaryColor = "#3B82F6"

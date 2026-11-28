@@ -1,4 +1,4 @@
-"""Cinematic 3-Column J.A.R.V.I.S. Holographic Cockpit HUD with Centerpiece 3D Face & Voice."""
+"""Jarvis Dev — Clean, handcrafted local developer assistant workspace."""
 
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ importlib.reload(_vision_tools_mod)
 importlib.reload(_tools_mod)
 importlib.reload(_prompts_mod)
 importlib.reload(_assistant_mod)
+
 chat = _assistant_mod.chat
 get_api_key = _assistant_mod.get_api_key
 get_model_name = _assistant_mod.get_model_name
@@ -45,267 +46,164 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=True)
 init_db()
 
 st.set_page_config(
-    page_title="J.A.R.V.I.S. Lite — Hologram Cockpit",
-    page_icon=":material/neurology:",
+    page_title="Jarvis",
+    page_icon=":material/terminal:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ---------------------------------------------------------------------------
-# Cinematic Iron Man / J.A.R.V.I.S. Cockpit CSS
+# Minimal, restrained desktop-app styling (Linear / Raycast inspired)
 # ---------------------------------------------------------------------------
 st.html(
     """
     <style>
-      .stApp {
-        background:
-          radial-gradient(circle at 50% 34%, rgba(0, 212, 255, 0.16), transparent 46%),
-          radial-gradient(circle at 12% 18%, rgba(0, 110, 255, 0.10), transparent 36%),
-          radial-gradient(circle at 88% 18%, rgba(0, 230, 168, 0.08), transparent 36%),
-          linear-gradient(180deg, #030710 0%, #050d1c 52%, #02060e 100%);
-      }
       .block-container {
-        padding-top: 0.65rem;
-        padding-bottom: 1.0rem;
-        max-width: 1520px;
+        padding-top: 0.75rem;
+        padding-bottom: 1.25rem;
+        max-width: 1460px;
       }
       header[data-testid="stHeader"] {
         background: transparent;
       }
-      div[data-testid="stChatInput"] > div {
-        border: 1px solid rgba(0, 216, 255, 0.48) !important;
-        background: rgba(6, 16, 33, 0.88) !important;
-        box-shadow: 0 0 26px rgba(0, 200, 255, 0.18);
+      @keyframes voice-bar {
+        0%, 100% { height: 5px; opacity: 0.45; }
+        50% { height: 22px; opacity: 1; }
       }
-      @keyframes jarvis-spin-cw {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      @keyframes jarvis-spin-ccw {
-        from { transform: rotate(360deg); }
-        to { transform: rotate(0deg); }
-      }
-      @keyframes jarvis-breathe {
-        0%, 100% {
-          box-shadow: 0 0 32px rgba(0, 212, 255, 0.42), 0 0 72px rgba(0, 140, 255, 0.22);
-          transform: scale(1);
-        }
-        50% {
-          box-shadow: 0 0 48px rgba(0, 228, 255, 0.68), 0 0 96px rgba(0, 180, 255, 0.34);
-          transform: scale(1.018);
-        }
-      }
-      @keyframes jarvis-speak-glow {
-        0%, 100% {
-          box-shadow: 0 0 40px rgba(0, 235, 175, 0.65), 0 0 88px rgba(0, 212, 255, 0.45);
-          transform: scale(1.01);
-        }
-        50% {
-          box-shadow: 0 0 64px rgba(0, 255, 204, 0.95), 0 0 120px rgba(0, 212, 255, 0.65);
-          transform: scale(1.035);
-        }
-      }
-      @keyframes jarvis-eq-idle {
-        0%, 100% { height: 7px; opacity: 0.48; }
-        50% { height: 17px; opacity: 0.9; }
-      }
-      @keyframes jarvis-eq-talk {
-        0%, 100% { height: 8px; opacity: 0.72; }
-        50% { height: 38px; opacity: 1; }
+      @keyframes ring-speak {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35); }
+        50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.0); }
       }
 
-      /* Top HUD Bar */
-      .jarvis-topbar {
+      /* Top App Bar */
+      .app-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 10px 18px;
+        padding: 10px 16px;
         margin-bottom: 14px;
-        border-radius: 12px;
-        background: linear-gradient(90deg, rgba(6, 18, 38, 0.94), rgba(4, 12, 26, 0.88), rgba(6, 18, 38, 0.94));
-        border: 1px solid rgba(0, 208, 255, 0.32);
-        box-shadow: 0 0 28px rgba(0, 200, 255, 0.10), inset 0 0 20px rgba(0, 200, 255, 0.05);
+        border-radius: 10px;
+        background: #12151C;
+        border: 1px solid #222733;
       }
-      .jarvis-brand-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 1.2rem;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        color: #e2f8ff;
-        text-shadow: 0 0 14px rgba(0, 212, 255, 0.55);
+      .app-header-left {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .app-name {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #F3F4F6;
+        letter-spacing: -0.01em;
         margin: 0;
       }
-      .jarvis-brand-sub {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        letter-spacing: 0.10em;
-        color: #79cbe8;
-        margin: 2px 0 0 0;
-        text-transform: uppercase;
+      .app-tag {
+        font-size: 0.78rem;
+        color: #7D8798;
+        margin: 0;
       }
-      .jarvis-chip-row {
+      .app-meta {
         display: flex;
         align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .jarvis-chip {
+        gap: 14px;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(0, 208, 255, 0.36);
-        background: rgba(0, 208, 255, 0.09);
-        color: #9ef0ff;
-        white-space: nowrap;
+        font-size: 0.75rem;
+        color: #8B94A5;
       }
-      .jarvis-chip-live {
-        border-color: rgba(0, 235, 170, 0.55);
-        background: rgba(0, 235, 170, 0.12);
-        color: #66ffd1;
+      .status-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-right: 6px;
+        vertical-align: middle;
       }
+      .dot-ok { background: #22C55E; }
+      .dot-warn { background: #F59E0B; }
 
-      /* Center Holographic Face Stage */
-      .jarvis-stage {
+      /* Center Assistant Stage */
+      .assistant-stage {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 18px 18px 16px 18px;
-        margin-bottom: 10px;
-        border-radius: 18px;
-        background:
-          radial-gradient(circle at 50% 38%, rgba(0, 212, 255, 0.18), rgba(4, 11, 24, 0.92) 68%);
-        border: 1px solid rgba(0, 212, 255, 0.32);
-        box-shadow: 0 0 38px rgba(0, 200, 255, 0.12), inset 0 0 42px rgba(0, 200, 255, 0.08);
-        position: relative;
+        padding: 22px 20px 18px 20px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: #12151C;
+        border: 1px solid #222733;
+      }
+      .avatar-frame {
+        width: 310px;
+        height: 310px;
+        border-radius: 50%;
+        border: 1.5px solid #283040;
+        background: #0B0D11;
         overflow: hidden;
+        margin-bottom: 14px;
+        transition: border-color 0.25s ease;
       }
-      .jarvis-orbital-frame {
-        position: relative;
-        width: 248px;
-        height: 248px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 10px;
+      .avatar-frame-speaking {
+        border-color: #3B82F6;
+        animation: ring-speak 1.5s ease-out infinite;
       }
-      .jarvis-orbit-outer {
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        border: 2px dashed rgba(0, 216, 255, 0.45);
-        animation: jarvis-spin-cw 28s linear infinite;
-        pointer-events: none;
-      }
-      .jarvis-orbit-mid {
-        position: absolute;
-        inset: 10px;
-        border-radius: 50%;
-        border: 2px dotted rgba(0, 235, 175, 0.42);
-        animation: jarvis-spin-ccw 19s linear infinite;
-        pointer-events: none;
-      }
-      .jarvis-portal {
-        width: 214px;
-        height: 214px;
-        border-radius: 50%;
-        padding: 4px;
-        border: 2.5px solid rgba(0, 224, 255, 0.75);
-        background: radial-gradient(circle, rgba(0, 216, 255, 0.25), #030812 72%);
-        overflow: hidden;
-        animation: jarvis-breathe 3.4s ease-in-out infinite;
-      }
-      .jarvis-portal-speaking {
-        border-color: rgba(0, 250, 190, 0.92);
-        animation: jarvis-speak-glow 0.8s ease-in-out infinite;
-      }
-      .jarvis-portal-img {
+      .avatar-img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border-radius: 50%;
-        transform: scale(1.22);
+        transform: scale(1.32);
         display: block;
       }
 
-      /* 17-Bar Voice Waveform Equalizer */
-      .jarvis-wave {
+      /* Subtle 7-bar audio level indicator */
+      .voice-meter {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        height: 40px;
-        margin-bottom: 8px;
+        gap: 5px;
+        height: 24px;
+        margin-bottom: 12px;
       }
-      .jarvis-wave-bar {
-        width: 4.5px;
-        border-radius: 5px;
-        background: linear-gradient(180deg, #b8f8ff, #00c8ff);
-        box-shadow: 0 0 10px rgba(0, 212, 255, 0.75);
+      .voice-meter-bar {
+        width: 3px;
+        height: 6px;
+        border-radius: 3px;
+        background: #2C3445;
       }
-      .jarvis-wave-idle .jarvis-wave-bar {
-        animation: jarvis-eq-idle 1.9s ease-in-out infinite;
-      }
-      .jarvis-wave-talk .jarvis-wave-bar {
-        background: linear-gradient(180deg, #9effe4, #00d8ff);
-        box-shadow: 0 0 14px rgba(0, 240, 185, 0.92);
-        animation: jarvis-eq-talk 0.48s ease-in-out infinite;
-      }
-      .jarvis-state-tag {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.74rem;
-        letter-spacing: 0.22em;
-        color: #7eeeff;
-        text-transform: uppercase;
-        margin-bottom: 14px;
+      .voice-meter-active .voice-meter-bar {
+        background: #3B82F6;
+        animation: voice-bar 0.55s ease-in-out infinite;
       }
 
-      /* Live Holographic Speech Subtitle Box */
-      .jarvis-subtitle-box {
+      /* Clean Reply Box */
+      .reply-card {
         width: 100%;
-        max-width: 640px;
+        max-width: 660px;
         padding: 14px 18px;
-        border-radius: 12px;
-        background: rgba(5, 16, 34, 0.82);
-        border: 1px solid rgba(0, 212, 255, 0.30);
-        box-shadow: inset 0 0 18px rgba(0, 212, 255, 0.06);
-        text-align: center;
+        border-radius: 8px;
+        background: #0E1117;
+        border: 1px solid #1F2430;
+        text-align: left;
       }
-      .jarvis-subtitle-who {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.70rem;
-        letter-spacing: 0.16em;
-        color: #5ee6ff;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-      }
-      .jarvis-subtitle-text {
-        font-size: 1.02rem;
-        line-height: 1.55;
-        color: #e8faff;
+      .reply-text {
+        font-size: 0.96rem;
+        line-height: 1.6;
+        color: #E5E7EB;
         margin: 0;
         white-space: pre-wrap;
       }
-      .jarvis-tool-pill {
-        display: inline-block;
-        margin-top: 10px;
+      .reply-tools {
+        margin-top: 8px;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.70rem;
-        padding: 3px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(0, 230, 168, 0.42);
-        background: rgba(0, 230, 168, 0.10);
-        color: #6ef7cf;
+        font-size: 0.72rem;
+        color: #6B7689;
       }
 
-      .jarvis-wing-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.74rem;
-        letter-spacing: 0.15em;
-        color: #6ce0ff;
-        text-transform: uppercase;
+      .section-heading {
+        font-size: 0.80rem;
+        font-weight: 600;
+        color: #9CA3AF;
+        letter-spacing: 0.02em;
         margin-bottom: 8px;
       }
     </style>
@@ -376,53 +274,44 @@ def _load_avatar_data_uri() -> str:
     return f"data:image/jpeg;base64,{encoded}"
 
 
-def _render_center_hologram(
+def _render_center_assistant(
     *,
     speaking: bool,
     latest_reply: str,
     latest_tools: list[dict[str, Any]],
 ) -> None:
-    """Render the giant centered 3D holographic face + equalizer + live speech subtitle."""
-    portal_class = "jarvis-portal jarvis-portal-speaking" if speaking else "jarvis-portal"
-    wave_class = "jarvis-wave jarvis-wave-talk" if speaking else "jarvis-wave jarvis-wave-idle"
-    state_text = "VOICE LINK ACTIVE • SPEAKING" if speaking else "HOLOGRAPHIC CORE • LISTENING"
-
-    delays = [0.0, 0.08, 0.16, 0.24, 0.12, 0.28, 0.04, 0.20, 0.32, 0.18, 0.06, 0.26, 0.14, 0.22, 0.10, 0.05, 0.15]
-    bars_html = "".join(
-        f'<div class="jarvis-wave-bar" style="animation-delay: {d}s;"></div>' for d in delays
+    frame_cls = "avatar-frame avatar-frame-speaking" if speaking else "avatar-frame"
+    meter_cls = "voice-meter voice-meter-active" if speaking else "voice-meter"
+    delays = [0.0, 0.1, 0.2, 0.08, 0.18, 0.26, 0.12]
+    bars = "".join(
+        f'<div class="voice-meter-bar" style="animation-delay: {d}s;"></div>' for d in delays
     )
 
     avatar_uri = _load_avatar_data_uri()
     img_html = (
-        f'<img class="jarvis-portal-img" src="{avatar_uri}" alt="J.A.R.V.I.S." />'
+        f'<img class="avatar-img" src="{avatar_uri}" alt="Jarvis" />'
         if avatar_uri
         else ""
     )
 
     safe_reply = html.escape(latest_reply)
-    tool_html = ""
+    tools_line = ""
     if latest_tools:
         names = ", ".join(t["name"] for t in latest_tools)
-        tool_html = f'<div class="jarvis-tool-pill">⚡ EXECUTED: {html.escape(names)}</div>'
+        tools_line = f'<div class="reply-tools">Ran: {html.escape(names)}</div>'
 
     st.html(
         f"""
-        <div class="jarvis-stage">
-          <div class="jarvis-orbital-frame">
-            <div class="jarvis-orbit-outer"></div>
-            <div class="jarvis-orbit-mid"></div>
-            <div class="{portal_class}">
-              {img_html}
-            </div>
+        <div class="assistant-stage">
+          <div class="{frame_cls}">
+            {img_html}
           </div>
-          <div class="{wave_class}">
-            {bars_html}
+          <div class="{meter_cls}">
+            {bars}
           </div>
-          <div class="jarvis-state-tag">{state_text}</div>
-          <div class="jarvis-subtitle-box">
-            <div class="jarvis-subtitle-who">J.A.R.V.I.S. LIVE TRANSMISSION</div>
-            <p class="jarvis-subtitle-text">{safe_reply}</p>
-            {tool_html}
+          <div class="reply-card">
+            <p class="reply-text">{safe_reply}</p>
+            {tools_line}
           </div>
         </div>
         """
@@ -430,24 +319,24 @@ def _render_center_hologram(
 
 
 # ---------------------------------------------------------------------------
-# Top Holographic Status Bar
+# Minimal Top App Bar
 # ---------------------------------------------------------------------------
-now_label = datetime.now().strftime("%a %d %b • %H:%M")
+now_label = datetime.now().strftime("%a, %d %b · %H:%M")
 api_ready = bool(get_api_key())
-status_text = "● SYSTEMS ONLINE" if api_ready else "● API KEY REQUIRED"
-status_css = "jarvis-chip jarvis-chip-live" if api_ready else "jarvis-chip"
+dot_cls = "status-dot dot-ok" if api_ready else "status-dot dot-warn"
+status_label = "Ready" if api_ready else "API key missing"
 
 st.html(
     f"""
-    <div class="jarvis-topbar">
-      <div>
-        <p class="jarvis-brand-title">J.A.R.V.I.S. DEV</p>
-        <p class="jarvis-brand-sub">Voice-First Developer Command Center • Git • VS Code • Debug • Singlish / EN</p>
+    <div class="app-header">
+      <div class="app-header-left">
+        <p class="app-name">Jarvis</p>
+        <p class="app-tag">Local developer workspace</p>
       </div>
-      <div class="jarvis-chip-row">
-        <span class="{status_css}">{status_text}</span>
-        <span class="jarvis-chip">{get_model_name()}</span>
-        <span class="jarvis-chip">{now_label}</span>
+      <div class="app-meta">
+        <span><span class="{dot_cls}"></span>{status_label}</span>
+        <span>{get_model_name()}</span>
+        <span>{now_label}</span>
       </div>
     </div>
     """
@@ -455,8 +344,7 @@ st.html(
 
 if not api_ready:
     st.warning(
-        "`GEMINI_API_KEY` is not set yet. Get a **free** key at "
-        "https://aistudio.google.com/apikey, paste it into `.env`, save, and refresh.",
+        "`GEMINI_API_KEY` is not set. Add your key from https://aistudio.google.com/apikey to `.env` and refresh.",
         icon=":material/key:",
     )
 
@@ -464,11 +352,9 @@ pending_tasks = _fetch_pending_tasks()
 current_facts = get_all_facts()
 recent_notes = _fetch_recent_notes()
 
-# Grab queued TTS audio once so it auto-plays and activates the speaking hologram state
 audio_to_play = st.session_state.last_audio
 st.session_state.last_audio = None
 
-# Latest assistant reply for the live centered speech subtitle
 latest_assistant_msg = next(
     (m for m in reversed(st.session_state.display_messages) if m["role"] == "assistant"),
     None,
@@ -476,19 +362,19 @@ latest_assistant_msg = next(
 subtitle_text = (
     latest_assistant_msg["content"]
     if latest_assistant_msg
-    else "J.A.R.V.I.S. DEV online. Speak, attach error screenshots/code, or command me to inspect Git, scaffold projects in VS Code, check localhost ports, or launch apps."
+    else "Ready. Speak, attach a file, or type a command — I can inspect your screen, manage Git repos, build projects in VS Code/XAMPP, or handle tasks and notes."
 )
 subtitle_tools = (latest_assistant_msg or {}).get("tool_calls") or []
 
 # ---------------------------------------------------------------------------
-# Symmetrical 3-Column Hologram Cockpit Layout
+# 3-Column Workspace Layout
 # ---------------------------------------------------------------------------
-col_left, col_center, col_right = st.columns([1.0, 2.05, 1.05], gap="medium")
+col_left, col_center, col_right = st.columns([0.95, 2.15, 1.0], gap="medium")
 
-# LEFT WING: Tasks + Notes + Memory (clear developer labels)
+# LEFT PANEL: Tasks, Notes, Memory
 with col_left:
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">✅ Tasks & Sprint Queue</div>')
+        st.html('<div class="section-heading">Tasks</div>')
         if pending_tasks:
             for item in pending_tasks[:7]:
                 due_badge = f" · `{item['due_date']}`" if item["due_date"] else ""
@@ -498,50 +384,46 @@ with col_left:
                     "",
                     key=f"done_task_{item['id']}",
                     icon=":material/check:",
-                    help=f"Mark task #{item['id']} complete",
+                    help=f"Complete task #{item['id']}",
                 ):
                     complete_task(item["id"])
                     st.rerun()
         else:
-            st.caption("No pending tasks. Say 'add a task...' to create one.")
+            st.caption("No open tasks.")
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">📝 Saved Notes & Snippets</div>')
+        st.html('<div class="section-heading">Notes</div>')
         if recent_notes:
             for note in recent_notes[:5]:
                 snippet = note["text"] if len(note["text"]) <= 68 else f"{note['text'][:65]}..."
                 st.markdown(f"- `#{note['id']}` {snippet}")
         else:
-            st.caption("No notes yet. Say 'save a note...' to archive.")
+            st.caption("No saved notes.")
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">🧠 Long-Term Memory</div>')
+        st.html('<div class="section-heading">Memory</div>')
         if current_facts:
             for key, value in current_facts[:6]:
                 st.markdown(f"- **{key}**: {value}")
         else:
-            st.caption("No saved facts yet. Tell Jarvis your stack or preferences.")
+            st.caption("No saved facts.")
 
-# RIGHT WING: Voice Controls + Telemetry + Scrollable Chat History
+# RIGHT PANEL: Voice Settings & Persistent Chat History
 with col_right:
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">🎙️ Voice & Controls</div>')
-        voice_enabled = st.toggle("Jarvis voice reply", value=True, key="voice_enabled")
+        st.html('<div class="section-heading">Voice</div>')
+        voice_enabled = st.toggle("Spoken replies", value=True, key="voice_enabled")
         selected_voice = st.selectbox(
-            "Voice profile",
+            "Voice",
             options=list(VOICE_PRESETS.keys()),
             index=0,
+            label_visibility="collapsed",
             key="voice_profile",
         )
         if audio_to_play:
             st.audio(audio_to_play, format="audio/mp3", autoplay=True)
 
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Tasks", len(pending_tasks))
-        m2.metric("Memory", len(current_facts))
-        m3.metric("Notes", len(recent_notes))
-
-        if st.button("New chat session", icon=":material/add_comment:", width="stretch"):
+        if st.button("New chat", icon=":material/add:", width="stretch"):
             st.session_state.session_id = datetime.now().strftime("session-%Y%m%d-%H%M%S")
             st.session_state.api_messages = []
             st.session_state.display_messages = []
@@ -551,15 +433,15 @@ with col_right:
             st.rerun()
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">💬 Chat History</div>')
-        tab_current, tab_history = st.tabs(["Current Chat", "Saved History"])
+        st.html('<div class="section-heading">History</div>')
+        tab_current, tab_history = st.tabs(["Current", "Saved"])
 
         with tab_current:
-            with st.container(height=280, border=False):
+            with st.container(height=310, border=False):
                 if st.session_state.display_messages:
                     for msg in st.session_state.display_messages:
-                        role_tag = "YOU" if msg["role"] == "user" else "J.A.R.V.I.S."
-                        st.markdown(f"**`{role_tag}`** {msg['content']}")
+                        role_tag = "You" if msg["role"] == "user" else "Jarvis"
+                        st.markdown(f"**{role_tag}**  \n{msg['content']}")
                         if msg.get("tool_calls"):
                             with st.expander(
                                 f"Tools ({len(msg['tool_calls'])})",
@@ -571,7 +453,7 @@ with col_right:
                                         language="text",
                                     )
                 else:
-                    st.caption("Current session conversation will appear here.")
+                    st.caption("Messages from this session appear here.")
 
         with tab_history:
             saved_sessions = list_chat_sessions(limit=20)
@@ -579,7 +461,7 @@ with col_right:
                 session_labels = {
                     s["session_id"]: (
                         f"{(s['last_at'] or '')[5:16]} · "
-                        f"{((s['preview'] or 'Chat')[:28])}"
+                        f"{((s['preview'] or 'Chat')[:26])}"
                         f" ({s['message_count']})"
                     )
                     for s in saved_sessions
@@ -592,17 +474,16 @@ with col_right:
                     key="history_session_select",
                 )
                 past_msgs = get_session_messages(chosen_sid)
-                with st.container(height=205, border=False):
+                with st.container(height=225, border=False):
                     for msg in past_msgs:
-                        role_tag = "YOU" if msg["role"] == "user" else "J.A.R.V.I.S."
+                        role_tag = "You" if msg["role"] == "user" else "Jarvis"
                         ts = (msg.get("created_at") or "")[11:16]
-                        st.markdown(f"**`{role_tag}`** `{ts}` {msg['content']}")
+                        st.markdown(f"**{role_tag}** `{ts}`  \n{msg['content']}")
 
                 b1, b2 = st.columns(2)
                 if b1.button("Load", icon=":material/history:", width="stretch", key="load_hist_btn"):
                     st.session_state.session_id = chosen_sid
                     st.session_state.display_messages = past_msgs
-                    # Rebuild clean text-only Gemini context for continuing the loaded chat
                     st.session_state.api_messages = [
                         {
                             "role": "user" if m["role"] == "user" else "model",
@@ -619,31 +500,26 @@ with col_right:
                         st.session_state.api_messages = []
                     st.rerun()
             else:
-                st.caption("No saved chat history yet.")
+                st.caption("No saved sessions yet.")
 
-# CENTER STAGE: Giant 3D Holographic Face + Quick Commands + Voice/Text Input
+# CENTER PANEL: Large Assistant Face + Quick Actions + Input Bar
 with col_center:
-    _render_center_hologram(
+    _render_center_assistant(
         speaking=bool(audio_to_play),
         latest_reply=subtitle_text,
         latest_tools=subtitle_tools,
     )
 
     SUGGESTIONS = {
-        ":green[:material/visibility:] Look at my screen": "Look at my screen and tell me what you see or help with any error shown",
-        ":blue[:material/commit:] Git status": "Check git status of jarvis-lite",
-        ":blue[:material/code:] Build HTML in VS Code": "Open VS Code and write a modern decorated HTML portfolio page",
-        ":orange[:material/search:] Search Google": "Go to Google and search Python FastAPI tutorial",
-        ":green[:material/chat:] Open WhatsApp": "Open WhatsApp",
-        ":violet[:material/lan:] Check dev ports": "Check which local dev ports are running right now",
+        ":material/visibility: Inspect screen": "Look at my screen and tell me what you see or help with any error shown",
+        ":material/commit: Git status": "Check git status of jarvis-lite",
+        ":material/code: Build HTML page": "Open VS Code and write a modern HTML portfolio page",
+        ":material/search: Search Google": "Go to Google and search Python FastAPI tutorial",
+        ":material/lan: Dev ports": "Check which local dev ports are running right now",
     }
 
-    st.caption(
-        "Quick Actions — click a button, click **🎤 Mic** to speak (EN / සිංහල / Singlish), "
-        "or click **➕ Clip** to attach images, PDF, Word (.docx), or code:"
-    )
     selected_chip = st.pills(
-        "Quick commands",
+        "Quick actions",
         list(SUGGESTIONS.keys()),
         label_visibility="collapsed",
         key="quick_pills",
@@ -655,7 +531,7 @@ with col_center:
         st.session_state.last_pill = None
 
     chat_submission = st.chat_input(
-        "Speak (mic), attach files (clip), or command J.A.R.V.I.S. ...",
+        "Message Jarvis, record voice, or attach files...",
         accept_audio=True,
         accept_file="multiple",
         file_type=[
@@ -683,13 +559,13 @@ with col_center:
                 )
 
         if chat_submission.audio is not None:
-            with st.spinner("Listening & transcribing voice..."):
+            with st.spinner("Transcribing audio..."):
                 try:
                     raw_audio = chat_submission.audio.read()
                     mime = getattr(chat_submission.audio, "type", None) or "audio/wav"
                     spoken_text = transcribe_audio(raw_audio, mime_type=mime)
                 except Exception as exc:
-                    st.error(f"Could not transcribe voice: {exc}")
+                    st.error(f"Could not transcribe audio: {exc}")
                     spoken_text = ""
             if spoken_text:
                 active_prompt = spoken_text
@@ -708,7 +584,7 @@ with col_center:
         )
 
         tool_calls_this_turn: list[dict[str, Any]] = []
-        with st.status(f"Executing: {prompt_text[:60]}...", expanded=True) as status_box:
+        with st.status(f"Working on: {prompt_text[:60]}", expanded=True) as status_box:
 
             def _handle_tool_call(event: dict[str, Any]) -> None:
                 tool_calls_this_turn.append(event)
@@ -716,13 +592,13 @@ with col_center:
                 tool_name = event["name"]
                 tool_input = event.get("input") or {}
                 if tool_name == "init_project_workspace":
-                    label = f"Step {step_num}: Opening VS Code workspace `{tool_input.get('project_name', '')}`..."
+                    label = f"Opening VS Code workspace: {tool_input.get('project_name', '')}"
                 elif tool_name == "write_project_file":
-                    label = f"Step {step_num}: Writing `{tool_input.get('relative_file_path', '')}` live in VS Code..."
+                    label = f"Writing {tool_input.get('relative_file_path', '')}"
                 elif tool_name in {"run_project", "start_xampp"}:
-                    label = f"Step {step_num}: Starting server & launching live preview..."
+                    label = "Starting local server..."
                 else:
-                    label = f"Step {step_num}: Running `{tool_name}`..."
+                    label = f"Running {tool_name}..."
                 status_box.update(label=label, state="running", expanded=True)
                 status_box.markdown(f"**{step_num}. `{tool_name}`** — {event['output']}")
 
@@ -734,14 +610,14 @@ with col_center:
                     session_facts=st.session_state.session_facts,
                     on_tool_call=_handle_tool_call,
                 )
-                status_box.update(label="Transmission ready", state="complete", expanded=False)
+                status_box.update(label="Done", state="complete", expanded=False)
             except Exception as exc:
-                status_box.update(label="Command failed", state="error", expanded=True)
-                st.error(f"Could not complete request: {exc}")
+                status_box.update(label="Failed", state="error", expanded=True)
+                st.error(f"Request failed: {exc}")
                 st.stop()
 
         if voice_enabled:
-            with st.spinner("Synthesizing J.A.R.V.I.S. voice..."):
+            with st.spinner("Generating audio..."):
                 st.session_state.last_audio = synthesize_speech(
                     reply,
                     voice_id=VOICE_PRESETS[selected_voice],
