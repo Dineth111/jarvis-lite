@@ -1,37 +1,37 @@
 [theme]
 base = "dark"
-primaryColor = "#3B82F6"
-backgroundColor = "#0B0D11"
-secondaryBackgroundColor = "#12151C"
-codeBackgroundColor = "#0F1218"
-textColor = "#EDEDEF"
-linkColor = "#60A5FA"
-borderColor = "#222733"
+primaryColor = "#6366F1"
+backgroundColor = "#090A0F"
+secondaryBackgroundColor = "#11131B"
+codeBackgroundColor = "#0D0F16"
+textColor = "#F4F5F7"
+linkColor = "#818CF8"
+borderColor = "#232634"
 codeTextColor = "#CBD5E1"
 showWidgetBorder = true
 showSidebarBorder = true
-baseRadius = "8px"
-buttonRadius = "6px"
+baseRadius = "12px"
+buttonRadius = "10px"
 linkUnderline = false
 
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap"
+font = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+headingFont = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&display=swap"
 codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-baseFontSize = 14
-codeFontSize = "0.82rem"
-headingFontSizes = ["22px", "18px", "15px", "14px", "13px", "12px"]
-headingFontWeights = [600, 600, 600, 500, 500, 500]
+baseFontSize = 15
+codeFontSize = "0.84rem"
+headingFontSizes = ["26px", "20px", "16px", "15px", "14px", "12px"]
+headingFontWeights = [700, 600, 600, 600, 500, 500]
 
-blueColor = "#3B82F6"
-greenColor = "#22C55E"
-orangeColor = "#F59E0B"
-redColor = "#EF4444"
-violetColor = "#8B5CF6"
+blueColor = "#38BDF8"
+greenColor = "#34D399"
+orangeColor = "#FBBF24"
+redColor = "#F87171"
+violetColor = "#818CF8"
 
 [theme.sidebar]
-backgroundColor = "#0E1016"
-secondaryBackgroundColor = "#161A23"
-codeBackgroundColor = "#0F1218"
-textColor = "#EDEDEF"
-borderColor = "#222733"
-primaryColor = "#3B82F6"
+backgroundColor = "#0D0F15"
+secondaryBackgroundColor = "#151823"
+codeBackgroundColor = "#0B0D13"
+textColor = "#F4F5F7"
+borderColor = "#1F2330"
+primaryColor = "#6366F1"

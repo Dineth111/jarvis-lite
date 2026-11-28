@@ -52,6 +52,30 @@ Core behavior guidelines:
 """
 
 
+MODE_INSTRUCTIONS: dict[str, str] = {
+    "dev": (
+        "ACTIVE MODE: DEV (Software Engineering & Local Dev Command Center).\n"
+        "- Focus strictly on coding, debugging, Git workflows, VS Code, XAMPP/PHP, FastAPI/Python/React scaffolding, and localhost ports.\n"
+        "- Give concise, production-ready code and root-cause fixes."
+    ),
+    "academic": (
+        "ACTIVE MODE: ACADEMIC (University Study, Assignments & Exam Co-Pilot).\n"
+        "- Focus on explaining concepts clearly, summarizing attached lecture PDFs/Word docs/slides, generating practice MCQs/flashcards, and tracking assignment/exam deadlines.\n"
+        "- Break complex CS/IT topics down simply in the user's language (English / Sinhala / Singlish)."
+    ),
+    "personal": (
+        "ACTIVE MODE: PERSONAL (Everyday Personal Assistant).\n"
+        "- Focus on daily tasks, reminders, personal notes, remembering user preferences, playing YouTube music/videos, opening WhatsApp/everyday apps, and quick web lookups.\n"
+        "- Keep replies warm, friendly, and concise."
+    ),
+    "research": (
+        "ACTIVE MODE: RESEARCH (Deep Analysis & Structured Information).\n"
+        "- Focus on structured comparisons, analyzing attached reports/SRS/PDFs in depth, opening Google searches, and saving key findings into notes.\n"
+        "- Present answers cleanly with bullet points and clear takeaways."
+    ),
+}
+
+
 def format_memory_section(facts: list[tuple[str, str]] | None = None) -> str:
     """Format stored `(key, value)` pairs for injection into the system prompt."""
     resolved_facts = get_all_facts() if facts is None else facts
@@ -60,12 +84,17 @@ def format_memory_section(facts: list[tuple[str, str]] | None = None) -> str:
     return "\n".join(f"- {key}: {value}" for key, value in resolved_facts)
 
 
-def build_system_prompt(facts: list[tuple[str, str]] | None = None) -> str:
-    """Build the system prompt with the current local date/time and long-term memory."""
+def build_system_prompt(
+    facts: list[tuple[str, str]] | None = None,
+    mode: str = "dev",
+) -> str:
+    """Build the system prompt with current local date/time, active mode focus, and long-term memory."""
     now_str = datetime.now().astimezone().strftime("%Y-%m-%d (%A) %H:%M %Z")
     memory_section = format_memory_section(facts)
-    return (
+    mode_block = MODE_INSTRUCTIONS.get((mode or "dev").strip().lower(), MODE_INSTRUCTIONS["dev"])
+    base = (
         SYSTEM_PROMPT
         .replace("{current_datetime}", now_str)
         .replace("{memory_section}", memory_section)
     )
+    return f"{base}\n\n{mode_block}\n"

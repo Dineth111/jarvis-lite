@@ -229,6 +229,7 @@ def chat(
     history: list[dict[str, Any]] | None = None,
     *,
     attachments: list[dict[str, Any]] | None = None,
+    mode: str = "dev",
     system_prompt: str | None = None,
     session_facts: list[tuple[str, str]] | None = None,
     on_tool_call: Callable[[dict[str, Any]], None] | None = None,
@@ -261,7 +262,7 @@ def chat(
     init_db()
     active_client = client or get_client()
     model_chain = _build_model_chain(model or get_model_name())
-    active_system = system_prompt or build_system_prompt(facts=session_facts)
+    active_system = system_prompt or build_system_prompt(facts=session_facts, mode=mode)
     gemini_tools = _build_gemini_tools()
 
     # Rehydrate prior turns into Content objects on a working copy.
