@@ -16,7 +16,7 @@ from google.genai import types
 
 from db import init_db
 from prompts import build_system_prompt
-from tools import TOOLS, run_tool
+from tools import get_tools_for_mode, run_tool
 
 _ENV_PATH = Path(__file__).resolve().parent / ".env"
 
@@ -78,15 +78,16 @@ def get_client() -> genai.Client:
     )
 
 
-def _build_gemini_tools() -> list[types.Tool]:
-    """Convert TOOLS JSON schemas into Google GenAI FunctionDeclarations."""
+def _build_gemini_tools(mode: str | None = None) -> list[types.Tool]:
+    """Convert active mode's allowed TOOLS JSON schemas into Google GenAI FunctionDeclarations."""
+    active_tools = get_tools_for_mode(mode)
     declarations = [
         types.FunctionDeclaration(
             name=tool["name"],
             description=tool["description"],
             parameters_json_schema=tool["input_schema"],
         )
-        for tool in TOOLS
+        for tool in active_tools
     ]
     return [types.Tool(function_declarations=declarations)]
 
@@ -263,7 +264,7 @@ def chat(
     active_client = client or get_client()
     model_chain = _build_model_chain(model or get_model_name())
     active_system = system_prompt or build_system_prompt(facts=session_facts, mode=mode)
-    gemini_tools = _build_gemini_tools()
+    gemini_tools = _build_gemini_tools(mode=mode)
 
     # Rehydrate prior turns into Content objects on a working copy.
     working_contents: list[types.Content] = [
@@ -324,7 +325,7 @@ def chat(
         for fc in function_calls:
             tool_name = fc.name or ""
             tool_input = dict(fc.args) if isinstance(fc.args, dict) else {}
-            tool_output = run_tool(tool_name, tool_input)
+            tool_output = run_tool(tool_name, tool_input, mode=mode)
 
             if on_tool_call is not None:
                 on_tool_call(

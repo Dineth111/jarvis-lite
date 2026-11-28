@@ -531,9 +531,82 @@ _TOOL_DISPATCH = {
 }
 
 
-def run_tool(name: str, tool_input: dict[str, Any] | None = None) -> str:
-    """Safely execute a registered tool by name and return its string result."""
+_COMMON_PRODUCTIVITY_TOOLS = {
+    "add_task",
+    "list_tasks",
+    "complete_task",
+    "save_note",
+    "search_notes",
+    "remember_fact",
+    "recall_facts",
+}
+
+MODE_ALLOWED_TOOLS: dict[str, set[str]] = {
+    "dev": _COMMON_PRODUCTIVITY_TOOLS
+    | {
+        "init_project_workspace",
+        "build_full_project",
+        "write_project_file",
+        "run_project",
+        "start_xampp",
+        "create_project_template",
+        "create_code_file",
+        "open_in_vscode",
+        "list_my_projects",
+        "git_status",
+        "git_commit_and_push",
+        "create_github_repo",
+        "check_dev_ports",
+        "inspect_my_screen",
+    },
+    "academic": _COMMON_PRODUCTIVITY_TOOLS
+    | {
+        "inspect_my_screen",
+        "google_search",
+        "open_website",
+    },
+    "personal": _COMMON_PRODUCTIVITY_TOOLS
+    | {
+        "play_youtube",
+        "open_app",
+        "open_website",
+        "google_search",
+    },
+    "research": _COMMON_PRODUCTIVITY_TOOLS
+    | {
+        "google_search",
+        "open_website",
+        "inspect_my_screen",
+    },
+}
+
+
+def get_tools_for_mode(mode: str | None = None) -> list[dict[str, Any]]:
+    """Return only the tool schemas permitted for the active workspace mode."""
+    if not mode:
+        return list(TOOLS)
+    allowed = MODE_ALLOWED_TOOLS.get(mode.strip().lower())
+    if allowed is None:
+        return list(TOOLS)
+    return [tool for tool in TOOLS if tool["name"] in allowed]
+
+
+def run_tool(
+    name: str,
+    tool_input: dict[str, Any] | None = None,
+    *,
+    mode: str | None = None,
+) -> str:
+    """Safely execute a registered tool by name (enforcing active mode boundaries)."""
     try:
+        if mode:
+            allowed = MODE_ALLOWED_TOOLS.get(mode.strip().lower())
+            if allowed is not None and name not in allowed:
+                return (
+                    f"Action blocked: tool '{name}' is not allowed in '{mode.upper()}' mode. "
+                    "Ask the user to switch workspace mode in the top dropdown."
+                )
+
         func = _TOOL_DISPATCH.get(name)
         if func is None:
             return f"Error: unknown tool '{name}'."

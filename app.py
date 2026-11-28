@@ -652,7 +652,8 @@ with col_left:
 
 # RIGHT COLUMN: 3 Corner-Bracketed HUD Modules
 with col_right:
-    # 1. Core Status + 4 Tactical Action Tiles (matching top-right reference panel!)
+    # 1. Core Status + Mode-Specific Tactical Action Tiles
+    active_tool_count = len(_tools_mod.get_tools_for_mode(mode_cfg["key"]))
     st.html(
         f"""
         <div class="hud-card">
@@ -665,7 +666,7 @@ with col_right:
           </div>
           <div style="display:flex; gap:14px; margin-bottom:2px;">
             <div style="flex:1;">
-              <div class="hud-bar-meta"><span>TOOLS</span><span class="hud-bar-val">25</span></div>
+              <div class="hud-bar-meta"><span>MODE TOOLS</span><span class="hud-bar-val">{active_tool_count}</span></div>
               <div class="hud-bar-track"><div class="hud-bar-fill" style="width:100%;"></div></div>
             </div>
             <div style="flex:1;">
@@ -685,17 +686,35 @@ with col_right:
         key="voice_profile",
     )
 
-    # 4 Tactical Square Icon Tiles (Screen, Git, Ports, New Session)
+    # 4 Mode-Specific Tactical Icon Tiles (strictly scoped to the active mode)
+    mode_tiles: dict[str, list[tuple[str, str, str]]] = {
+        "dev": [
+            (":material/visibility:", "Screen Debug", "Look at my screen and help fix any code error shown"),
+            (":material/commit:", "Git Status", "Check git status of jarvis-lite"),
+            (":material/lan:", "Dev Ports", "Check which local dev ports are running right now"),
+        ],
+        "academic": [
+            (":material/visibility:", "Explain Screen", "Look at my screen and explain the study topic shown"),
+            (":material/school:", "Open SLIIT", "Open SLIIT"),
+            (":material/menu_book:", "Open W3Schools", "Open W3Schools"),
+        ],
+        "personal": [
+            (":material/smart_display:", "Play YouTube", "Go to YouTube and play Believer"),
+            (":material/chat:", "Open WhatsApp", "Open WhatsApp"),
+            (":material/checklist:", "My Tasks", "What are my tasks?"),
+        ],
+        "research": [
+            (":material/visibility:", "Read Screen", "Look at my screen and summarize the article shown"),
+            (":material/search:", "Google Search", "Go to Google and search latest AI research trends"),
+            (":material/sticky_note_2:", "Search Notes", "Search my notes for recent findings"),
+        ],
+    }
+    tiles_for_mode = mode_tiles.get(mode_cfg["key"], mode_tiles["dev"])
     ic1, ic2, ic3, ic4 = st.columns(4, gap="small")
-    if ic1.button("", icon=":material/visibility:", help="Inspect my screen", key="tile_screen", width="stretch"):
-        st.session_state.pending_prompt = "Look at my screen and help with what is visible"
-        st.rerun()
-    if ic2.button("", icon=":material/commit:", help="Git status", key="tile_git", width="stretch"):
-        st.session_state.pending_prompt = "Check git status of jarvis-lite"
-        st.rerun()
-    if ic3.button("", icon=":material/lan:", help="Check dev ports", key="tile_ports", width="stretch"):
-        st.session_state.pending_prompt = "Check which local dev ports are running right now"
-        st.rerun()
+    for idx, (col_btn, (t_icon, t_help, t_prompt)) in enumerate(zip((ic1, ic2, ic3), tiles_for_mode)):
+        if col_btn.button("", icon=t_icon, help=t_help, key=f"tile_{mode_cfg['key']}_{idx}", width="stretch"):
+            st.session_state.pending_prompt = t_prompt
+            st.rerun()
     if ic4.button("", icon=":material/restart_alt:", help="New session", key="tile_reset", width="stretch"):
         st.session_state.session_id = datetime.now().strftime("session-%Y%m%d-%H%M%S")
         st.session_state.api_messages = []
