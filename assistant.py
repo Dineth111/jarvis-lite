@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import io
 import os
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -28,7 +31,8 @@ FALLBACK_MODELS: tuple[str, ...] = (
     "gemini-3.8-flash",
     "gemini-3.7-flash",
 )
-MAX_TOOL_ROUNDS = 10
+MAX_TOOL_ROUNDS = 15
+MAX_OUTPUT_TOKENS = 8192
 _FALLBACK_STATUS_CODES = {404, 429, 500, 503, 504}
 
 
@@ -68,8 +72,8 @@ def get_client() -> genai.Client:
     return genai.Client(
         api_key=api_key,
         http_options=types.HttpOptions(
-            timeout=25_000,
-            retry_options=types.HttpRetryOptions(attempts=2),
+            timeout=90_000,
+            retry_options=types.HttpRetryOptions(attempts=3),
         ),
     )
 
@@ -115,7 +119,7 @@ def _generate_with_fallback(
     contents: list[types.Content],
     config: types.GenerateContentConfig,
 ) -> tuple[Any, str]:
-    """Try each model in `models`, automatically failing over on 503/429/504/404."""
+    """Try each model in `models`, failing over on 503/429/504/404 or transient disconnects."""
     last_exc: Exception | None = None
     for candidate in models:
         try:
@@ -130,19 +134,61 @@ def _generate_with_fallback(
             if exc.code in _FALLBACK_STATUS_CODES:
                 continue
             raise
+        except Exception as exc:
+            last_exc = exc
+            err_msg = str(exc).lower()
+            # Recover automatically from dropped HTTP/2 connections or read timeouts
+            if any(
+                token in err_msg
+                for token in ("disconnected", "timeout", "timed out", "connection", "reset")
+            ):
+                continue
+            raise
     if last_exc is not None:
         raise last_exc
     raise RuntimeError("No Gemini models were available to complete the request.")
 
 
 _TEXT_FILE_EXTS = {
-    ".txt", ".md", ".csv", ".json", ".py", ".html", ".htm",
+    ".txt", ".md", ".csv", ".json", ".py", ".html", ".htm", ".log",
     ".css", ".js", ".ts", ".tsx", ".jsx", ".sql", ".xml", ".yaml", ".yml",
+    ".java", ".c", ".cpp", ".cs", ".go", ".rs", ".php",
 }
 
 
+def _extract_office_text(data: bytes, suffix: str) -> str:
+    """Extract plain text from .docx or .pptx archives using Python stdlib only."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            if suffix == ".docx":
+                xml_names = [n for n in ("word/document.xml",) if n in zf.namelist()]
+            elif suffix == ".pptx":
+                xml_names = sorted(
+                    n for n in zf.namelist()
+                    if n.startswith("ppt/slides/slide") and n.endswith(".xml")
+                )
+            else:
+                return ""
+
+            paragraphs: list[str] = []
+            for xml_name in xml_names:
+                root = ET.fromstring(zf.read(xml_name))
+                # Group text runs by paragraph (<w:p> for docx, <a:p> for pptx)
+                for elem in root.iter():
+                    if elem.tag.endswith("}p"):
+                        line = "".join(
+                            node.text for node in elem.iter()
+                            if node.tag.endswith("}t") and node.text
+                        ).strip()
+                        if line:
+                            paragraphs.append(line)
+            return "\n".join(paragraphs)
+    except Exception:
+        return ""
+
+
 def _build_attachment_parts(attachments: list[dict[str, Any]] | None) -> list[types.Part]:
-    """Convert uploaded file attachments (images, PDFs, code/text files) into Gemini Parts."""
+    """Convert uploaded file attachments (images, PDFs, Word/PPT, code/text files) into Gemini Parts."""
     parts: list[types.Part] = []
     for att in attachments or []:
         name = str(att.get("name") or "file")
@@ -152,7 +198,18 @@ def _build_attachment_parts(attachments: list[dict[str, Any]] | None) -> list[ty
             continue
 
         suffix = Path(name).suffix.lower()
-        if mime.startswith("text/") or suffix in _TEXT_FILE_EXTS:
+        if suffix in {".docx", ".pptx"}:
+            extracted = _extract_office_text(data, suffix)
+            if not extracted:
+                extracted = "(Could not extract text from this document.)"
+            if len(extracted) > 60_000:
+                extracted = extracted[:60_000] + "\n... [truncated]"
+            parts.append(
+                types.Part.from_text(
+                    text=f"[Attached document: {name}]\n{extracted}"
+                )
+            )
+        elif mime.startswith("text/") or suffix in _TEXT_FILE_EXTS:
             decoded = data.decode("utf-8", errors="replace")
             if len(decoded) > 60_000:
                 decoded = decoded[:60_000] + "\n... [truncated]"
@@ -225,6 +282,7 @@ def chat(
             config=types.GenerateContentConfig(
                 system_instruction=active_system,
                 tools=gemini_tools,
+                max_output_tokens=MAX_OUTPUT_TOKENS,
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(
                     disable=True
                 ),

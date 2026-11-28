@@ -1,22 +1,25 @@
-# Jarvis Lite
+# J.A.R.V.I.S. DEV (`jarvis-lite`)
 
-A lightweight, day-to-day personal AI assistant built with **Python 3.11+**, the **Google GenAI SDK** (`gemini-3.5-flash-lite` with automatic fallback to `gemini-3.6-flash` / `gemini-3.1-flash-lite`) with multi-step tool calling, **SQLite**, **yt-dlp**, and **Streamlit**.
+> **Perplexity** is for Research. **Cursor** is for inside the Editor. **J.A.R.V.I.S. DEV** is your **Voice-First Local Developer Command Center**.
 
-Type natural language in **English**, **Sinhala (සිංහල)**, or **Singlish**, and Jarvis Lite automatically decides which tools to run—managing tasks, saving/searching notes, remembering long-term personal facts across sessions, and playing songs or videos on YouTube.
+A futuristic, Iron Man-inspired **Holographic Cockpit AI Assistant** built specifically for developers using **Python 3.11+**, **Google GenAI SDK** (`gemini-3.5-flash-lite` with automatic model fallback), **SQLite**, **edge-tts** Neural Voice, **yt-dlp**, and **Streamlit**.
+
+Speak, attach error screenshots/code files, or type in **English**, **Sinhala (සිංහල)**, or **Singlish** — J.A.R.V.I.S. DEV controls your local Git repos, scaffolds starter projects straight into VS Code, inspects active localhost dev ports, launches apps, and tracks your sprint tasks & long-term developer memory.
 
 ---
 
-## Features
+## Key Features
 
-- **Conversational Streamlit UI** — Persistent chat history in `st.session_state`, live sidebar snapshots of pending tasks and memory, and collapsible tool-call inspection.
-- **Multi-Step Tool Loop** — Calls the Gemini API in a loop until all requested function calls complete, allowing chained actions (such as listing tasks to find an ID before completing it).
-- **SQLite Persistence (`jarvis.db`)**:
-  - **Tasks**: `add_task(title, due_date?)`, `list_tasks()`, `complete_task(id)`
-  - **Notes**: `save_note(text)`, `search_notes(keyword)`
-  - **Long-Term Memory**: `remember_fact(key, value)`, `recall_facts()` — stored facts are injected into the system prompt at the start of every session.
-- **YouTube Playback**: `play_youtube(query)` searches YouTube with `yt-dlp` (`ytsearch1:`), opens the top video in your default browser via `webbrowser.open()`, and returns the title + URL.
-- **Multilingual Replies** — Replies concisely in the same language and tone as the user (English, Sinhala, or Singlish).
-- **Safe Tool Execution** — Every tool and the central dispatcher are wrapped in `try/except` blocks that return clean, human-readable error messages.
+- **Cinematic 3-Column Hologram Cockpit UI** — Centered glowing 3D holographic AI face avatar, 17-bar voice waveform equalizer, live speech subtitle bar, and symmetrical HUD wings.
+- **Two-Way Voice & Multimodal Debugging**:
+  - **Voice Input:** Click the microphone in the chat bar to speak commands in English, Sinhala, or Singlish (transcribed natively by Gemini).
+  - **Neural Voice Output:** Realistic British J.A.R.V.I.S. voice (`en-GB-RyanNeural`) and automatic Sinhala neural voice (`si-LK-SameeraNeural`) via `edge-tts`.
+  - **File & Screenshot Attachments:** Attach error screenshots, PDFs, or `.py/.html/.js/.css/.json` files for instant root-cause debugging.
+- **17 Developer & Productivity Tools**:
+  - **Git Voice Copilot:** `git_status`, `git_commit_and_push`
+  - **VS Code & Project Scaffolding:** `create_project_template` (`fastapi`, `html-portfolio`, `python-cli`, `react-vite`), `create_code_file` (with instant VS Code + browser preview), `open_in_vscode`, `list_my_projects`
+  - **Local Dev Environment:** `check_dev_ports` (`3000`, `5173`, `8000`, `8501`, `11434`), `open_app` (VS Code, WhatsApp, Terminal, Chrome, Spotify, Discord), `open_website`, `play_youtube`
+  - **SQLite Persistence (`jarvis.db`):** Sprint tasks (`add_task`, `list_tasks`, `complete_task`), Snippet/Note Vault (`save_note`, `search_notes`), Long-Term Dev Memory (`remember_fact`, `recall_facts` injected at session start), and **Saved Chat History** across sessions.
 
 ---
 
@@ -24,16 +27,22 @@ Type natural language in **English**, **Sinhala (සිංහල)**, or **Singli
 
 ```text
 jarvis-lite/
-  app.py              # Streamlit chat UI
-  assistant.py        # chat() loop with Gemini tool-use handling
+  .streamlit/
+    config.toml       # Cyber-cyan dark HUD theme & Orbitron/Space Grotesk fonts
+  assets/
+    jarvis_face.jpg   # 3D holographic AI face avatar
   tools/
-    __init__.py       # TOOLS list (JSON schemas) + run_tool() dispatcher
+    __init__.py       # 17 tool schemas + safe run_tool() dispatcher
+    developer.py      # Git, VS Code, scaffolding, ports, desktop apps & websites
     tasks.py          # add_task, list_tasks, complete_task
     notes.py          # save_note, search_notes
-    youtube.py        # play_youtube(query)
     memory.py         # remember_fact, recall_facts
-  db.py               # SQLite setup (tasks, notes, facts tables)
-  prompts.py          # SYSTEM prompt + session memory injection
+    youtube.py        # play_youtube(query)
+  app.py              # 3-Column J.A.R.V.I.S. Hologram Cockpit UI
+  assistant.py        # Multi-step Gemini tool loop + automatic model fallback
+  voice.py            # Gemini voice transcription + edge-tts neural speech
+  db.py               # SQLite storage (tasks, notes, facts, chat_history)
+  prompts.py          # J.A.R.V.I.S. DEV system prompt + session memory injection
   requirements.txt
   .env.example
   .gitignore
@@ -48,80 +57,46 @@ jarvis-lite/
 - **Python 3.11+**
 - A **free Google Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey) (no credit card required)
 
-### 2. Create and activate a virtual environment (optional, recommended)
+### 2. Install dependencies
 
-**Windows (PowerShell):**
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-**macOS / Linux:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure your environment variables
+### 3. Configure `.env`
 
-Copy `.env.example` to `.env` and add your Gemini API key:
-
-**Windows (PowerShell):**
 ```powershell
 Copy-Item .env.example .env
 ```
 
-**macOS / Linux:**
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
+Paste your key inside `.env`:
 ```env
 GEMINI_API_KEY=AIzaSy...
 ```
 
-### 5. Launch the app
+### 4. Launch J.A.R.V.I.S. DEV
 
-```bash
+```powershell
 streamlit run app.py
 ```
 
-Open the local URL displayed in your terminal (typically `http://localhost:8501`).
-
 ---
 
-## Example Commands
+## Example Developer Commands
 
-Try typing any of these in the chat input:
-
-- **YouTube**
-  - `"go to youtube and play Believer"`
-  - `"play Lo-fi study beats on YouTube"`
-- **Tasks**
-  - `"add a task: submit report tomorrow"`
-  - `"what are my tasks?"`
-  - `"mark task 1 as done"`
-- **Notes**
-  - `"save a note: Wi-Fi router admin IP is 192.168.1.1"`
-  - `"search my notes for router"`
-- **Long-Term Memory**
-  - `"remember that my name is Dineth and I prefer morning workouts"`
-  - `"what facts do you remember about me?"`
-- **Singlish & Sinhala**
-  - `"Machan heta ude assignment eka submit karanna task ekak danna"`
-  - `"මගේ ඉතිරි වැඩ මොනවද?"`
+- `"Check git status of jarvis-lite"`
+- `"Commit and push jarvis-lite with message 'update navbar'"`
+- `"Create a new FastAPI project called api-demo and open it in VS Code"`
+- `"Open VS Code and write a modern decorated HTML portfolio page"`
+- `"Check which local dev ports are running right now"`
+- `"Open WhatsApp"` / `"Open GitHub"` / `"Go to YouTube and play Believer"`
+- `"Machan heta deploy karanna task ekak danna"`
+- *(Attach an error screenshot)* `"Explain why this error is happening and fix it"`
 
 ---
 
 ## Next Steps
 
-1. **Telegram Bot Integration** — Wrap `assistant.chat()` with `python-telegram-bot` or `aiogram` (storing per-chat history in SQLite) so you can message Jarvis Lite from your phone on the go.
-2. **Google Calendar Sync** — Add `list_calendar_events` and `create_calendar_event` tools using `google-api-python-client` with OAuth2 so deadlines and meetings sync directly with Google Calendar.
-3. **Daily Morning Brief with APScheduler** — Schedule a daily morning job using `APScheduler` (`CronTrigger(hour=7, minute=30)`) that pulls today's due tasks, recent notes, and remembered preferences, generates a concise morning briefing with Gemini, and delivers it via Telegram or desktop notification.
+1. **Telegram Bot Integration** — Wrap `assistant.chat()` with `python-telegram-bot` or `aiogram` so you can check builds, tasks, and notes from your phone.
+2. **Google Calendar Sync** — Connect `google-api-python-client` to sync sprint deadlines and standup meetings.
+3. **Daily Morning Dev Brief with APScheduler** — Run a scheduled morning job (`APScheduler`) summarizing today's tasks, git repo status, and remembered priorities.

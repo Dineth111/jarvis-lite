@@ -15,11 +15,21 @@ from dotenv import load_dotenv
 
 import assistant as _assistant_mod
 import db as _db_mod
+import prompts as _prompts_mod
+import tools as _tools_mod
+import tools.builder as _builder_tools_mod
+import tools.developer as _dev_tools_mod
+import tools.vision as _vision_tools_mod
 from tools.memory import get_all_facts
 from tools.tasks import complete_task
 from voice import VOICE_PRESETS, synthesize_speech, transcribe_audio
 
 importlib.reload(_db_mod)
+importlib.reload(_dev_tools_mod)
+importlib.reload(_builder_tools_mod)
+importlib.reload(_vision_tools_mod)
+importlib.reload(_tools_mod)
+importlib.reload(_prompts_mod)
 importlib.reload(_assistant_mod)
 chat = _assistant_mod.chat
 get_api_key = _assistant_mod.get_api_key
@@ -55,8 +65,8 @@ st.html(
           linear-gradient(180deg, #030710 0%, #050d1c 52%, #02060e 100%);
       }
       .block-container {
-        padding-top: 0.9rem;
-        padding-bottom: 1.2rem;
+        padding-top: 0.65rem;
+        padding-bottom: 1.0rem;
         max-width: 1520px;
       }
       header[data-testid="stHeader"] {
@@ -162,24 +172,24 @@ st.html(
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 26px 20px 22px 20px;
-        margin-bottom: 14px;
+        padding: 18px 18px 16px 18px;
+        margin-bottom: 10px;
         border-radius: 18px;
         background:
-          radial-gradient(circle at 50% 40%, rgba(0, 212, 255, 0.18), rgba(4, 11, 24, 0.90) 68%);
-        border: 1px solid rgba(0, 212, 255, 0.30);
-        box-shadow: 0 0 42px rgba(0, 200, 255, 0.12), inset 0 0 48px rgba(0, 200, 255, 0.08);
+          radial-gradient(circle at 50% 38%, rgba(0, 212, 255, 0.18), rgba(4, 11, 24, 0.92) 68%);
+        border: 1px solid rgba(0, 212, 255, 0.32);
+        box-shadow: 0 0 38px rgba(0, 200, 255, 0.12), inset 0 0 42px rgba(0, 200, 255, 0.08);
         position: relative;
         overflow: hidden;
       }
       .jarvis-orbital-frame {
         position: relative;
-        width: 336px;
-        height: 336px;
+        width: 248px;
+        height: 248px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
       }
       .jarvis-orbit-outer {
         position: absolute;
@@ -191,18 +201,18 @@ st.html(
       }
       .jarvis-orbit-mid {
         position: absolute;
-        inset: 12px;
+        inset: 10px;
         border-radius: 50%;
-        border: 2px dotted rgba(0, 235, 175, 0.40);
+        border: 2px dotted rgba(0, 235, 175, 0.42);
         animation: jarvis-spin-ccw 19s linear infinite;
         pointer-events: none;
       }
       .jarvis-portal {
-        width: 292px;
-        height: 292px;
+        width: 214px;
+        height: 214px;
         border-radius: 50%;
-        padding: 5px;
-        border: 2.5px solid rgba(0, 224, 255, 0.72);
+        padding: 4px;
+        border: 2.5px solid rgba(0, 224, 255, 0.75);
         background: radial-gradient(circle, rgba(0, 216, 255, 0.25), #030812 72%);
         overflow: hidden;
         animation: jarvis-breathe 3.4s ease-in-out infinite;
@@ -431,8 +441,8 @@ st.html(
     f"""
     <div class="jarvis-topbar">
       <div>
-        <p class="jarvis-brand-title">J.A.R.V.I.S. LITE</p>
-        <p class="jarvis-brand-sub">Developer Neural Cockpit • Voice / English / සිංහල / Singlish</p>
+        <p class="jarvis-brand-title">J.A.R.V.I.S. DEV</p>
+        <p class="jarvis-brand-sub">Voice-First Developer Command Center • Git • VS Code • Debug • Singlish / EN</p>
       </div>
       <div class="jarvis-chip-row">
         <span class="{status_css}">{status_text}</span>
@@ -466,7 +476,7 @@ latest_assistant_msg = next(
 subtitle_text = (
     latest_assistant_msg["content"]
     if latest_assistant_msg
-    else "All systems online. Click the microphone or type a command — I can open VS Code, build decorated HTML pages, launch WhatsApp, manage tasks, or play YouTube."
+    else "J.A.R.V.I.S. DEV online. Speak, attach error screenshots/code, or command me to inspect Git, scaffold projects in VS Code, check localhost ports, or launch apps."
 )
 subtitle_tools = (latest_assistant_msg or {}).get("tool_calls") or []
 
@@ -475,10 +485,10 @@ subtitle_tools = (latest_assistant_msg or {}).get("tool_calls") or []
 # ---------------------------------------------------------------------------
 col_left, col_center, col_right = st.columns([1.0, 2.05, 1.05], gap="medium")
 
-# LEFT WING: Mission Queue + Notes Vault
+# LEFT WING: Tasks + Notes + Memory (clear developer labels)
 with col_left:
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">Mission Queue</div>')
+        st.html('<div class="jarvis-wing-title">✅ Tasks & Sprint Queue</div>')
         if pending_tasks:
             for item in pending_tasks[:7]:
                 due_badge = f" · `{item['due_date']}`" if item["due_date"] else ""
@@ -488,35 +498,35 @@ with col_left:
                     "",
                     key=f"done_task_{item['id']}",
                     icon=":material/check:",
-                    help=f"Complete task #{item['id']}",
+                    help=f"Mark task #{item['id']} complete",
                 ):
                     complete_task(item["id"])
                     st.rerun()
         else:
-            st.caption("All clear — no pending missions.")
+            st.caption("No pending tasks. Say 'add a task...' to create one.")
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">Notes Vault</div>')
+        st.html('<div class="jarvis-wing-title">📝 Saved Notes & Snippets</div>')
         if recent_notes:
             for note in recent_notes[:5]:
                 snippet = note["text"] if len(note["text"]) <= 68 else f"{note['text'][:65]}..."
                 st.markdown(f"- `#{note['id']}` {snippet}")
         else:
-            st.caption("No notes archived yet.")
+            st.caption("No notes yet. Say 'save a note...' to archive.")
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">Neural Memory</div>')
+        st.html('<div class="jarvis-wing-title">🧠 Long-Term Memory</div>')
         if current_facts:
             for key, value in current_facts[:6]:
                 st.markdown(f"- **{key}**: {value}")
         else:
-            st.caption("No facts stored yet.")
+            st.caption("No saved facts yet. Tell Jarvis your stack or preferences.")
 
-# RIGHT WING: Voice Controls + Telemetry + Scrollable Chat Log
+# RIGHT WING: Voice Controls + Telemetry + Scrollable Chat History
 with col_right:
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">Voice & Core</div>')
-        voice_enabled = st.toggle("Jarvis voice output", value=True, key="voice_enabled")
+        st.html('<div class="jarvis-wing-title">🎙️ Voice & Controls</div>')
+        voice_enabled = st.toggle("Jarvis voice reply", value=True, key="voice_enabled")
         selected_voice = st.selectbox(
             "Voice profile",
             options=list(VOICE_PRESETS.keys()),
@@ -528,7 +538,7 @@ with col_right:
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Tasks", len(pending_tasks))
-        m2.metric("Mem", len(current_facts))
+        m2.metric("Memory", len(current_facts))
         m3.metric("Notes", len(recent_notes))
 
         if st.button("New chat session", icon=":material/add_comment:", width="stretch"):
@@ -541,8 +551,8 @@ with col_right:
             st.rerun()
 
     with st.container(border=True):
-        st.html('<div class="jarvis-wing-title">Comm Log & History</div>')
-        tab_current, tab_history = st.tabs(["Current", "Saved History"])
+        st.html('<div class="jarvis-wing-title">💬 Chat History</div>')
+        tab_current, tab_history = st.tabs(["Current Chat", "Saved History"])
 
         with tab_current:
             with st.container(height=280, border=False):
@@ -620,13 +630,18 @@ with col_center:
     )
 
     SUGGESTIONS = {
-        ":blue[:material/code:] Build HTML page in VS Code": "Open VS Code and write a modern decorated HTML portfolio page",
+        ":green[:material/visibility:] Look at my screen": "Look at my screen and tell me what you see or help with any error shown",
+        ":blue[:material/commit:] Git status": "Check git status of jarvis-lite",
+        ":blue[:material/code:] Build HTML in VS Code": "Open VS Code and write a modern decorated HTML portfolio page",
+        ":orange[:material/search:] Search Google": "Go to Google and search Python FastAPI tutorial",
         ":green[:material/chat:] Open WhatsApp": "Open WhatsApp",
-        ":blue[:material/add_task:] Task for tomorrow": "Add a task: submit report tomorrow",
-        ":red[:material/smart_display:] Play Believer": "Go to YouTube and play Believer",
-        ":orange[:material/translate:] Singlish": "Machan mage tasks monawada?",
+        ":violet[:material/lan:] Check dev ports": "Check which local dev ports are running right now",
     }
 
+    st.caption(
+        "Quick Actions — click a button, click **🎤 Mic** to speak (EN / සිංහල / Singlish), "
+        "or click **➕ Clip** to attach images, PDF, Word (.docx), or code:"
+    )
     selected_chip = st.pills(
         "Quick commands",
         list(SUGGESTIONS.keys()),
@@ -645,8 +660,9 @@ with col_center:
         accept_file="multiple",
         file_type=[
             "png", "jpg", "jpeg", "webp",
-            "pdf", "txt", "md", "csv", "json",
+            "pdf", "docx", "pptx", "txt", "md", "csv", "json", "log",
             "py", "html", "css", "js", "ts", "sql", "xml", "yaml", "yml",
+            "java", "c", "cpp", "cs", "go", "rs", "php",
         ],
         submit_mode="disable",
     )
@@ -692,13 +708,23 @@ with col_center:
         )
 
         tool_calls_this_turn: list[dict[str, Any]] = []
-        with st.status(f"Executing: {prompt_text[:60]}...", expanded=False) as status_box:
+        with st.status(f"Executing: {prompt_text[:60]}...", expanded=True) as status_box:
 
             def _handle_tool_call(event: dict[str, Any]) -> None:
                 tool_calls_this_turn.append(event)
-                status_box.update(label=f"Running `{event['name']}`...", state="running")
-                status_box.markdown(f"**`{event['name']}`**")
-                status_box.caption(event["output"])
+                step_num = len(tool_calls_this_turn)
+                tool_name = event["name"]
+                tool_input = event.get("input") or {}
+                if tool_name == "init_project_workspace":
+                    label = f"Step {step_num}: Opening VS Code workspace `{tool_input.get('project_name', '')}`..."
+                elif tool_name == "write_project_file":
+                    label = f"Step {step_num}: Writing `{tool_input.get('relative_file_path', '')}` live in VS Code..."
+                elif tool_name in {"run_project", "start_xampp"}:
+                    label = f"Step {step_num}: Starting server & launching live preview..."
+                else:
+                    label = f"Step {step_num}: Running `{tool_name}`..."
+                status_box.update(label=label, state="running", expanded=True)
+                status_box.markdown(f"**{step_num}. `{tool_name}`** — {event['output']}")
 
             try:
                 reply = chat(
